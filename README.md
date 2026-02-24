@@ -753,6 +753,4 @@ SOFTWARE.
 <p align="center">
   <strong>S O R K</strong><br>
   Security Orchestration, Remediation & Keeping<br><br>
-  <em>Keeping your code secure — automatically.</em><br><br>
-  Built with ❤ on GitLab Duo Agent Platform + Anthropic Claude
-</p>
+  <em>Keeping your code secure — automatically.
