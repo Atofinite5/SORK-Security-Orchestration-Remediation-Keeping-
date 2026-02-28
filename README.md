@@ -4,7 +4,11 @@ SORK automates your entire vulnerability lifecycle. Three AI agents work in sequ
 
 > *"SORK turns every security scan from a to-do list into a done list."*
 
---->  Made by Bhargav Kalambhe 
+---
+
+**Made with ❤️ by [Devbhargav](https://github.com/Atofinite5) - Bhargav Kalambhe**
+
+*Empowering developers with AI-driven security automation* 
 
 
 ## The Problem
