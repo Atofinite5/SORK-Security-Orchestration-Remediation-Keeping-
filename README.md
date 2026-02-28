@@ -386,8 +386,10 @@ The verifier. Watches the fix pipeline and confirms vulnerabilities are resolved
 
 ### Installation & Setup
 
+#### Option 1: Global Installation (Recommended)
+
 ```bash
-# Install globally
+# Install globally (one-time)
 npm install -g sork-queb
 
 # Initialize in your project
@@ -402,6 +404,17 @@ sork fix
 
 # Setup pre-commit hooks (optional)
 sork setup-hooks
+```
+
+#### Option 2: Use npx (No Installation)
+
+```bash
+# Run without installing globally - always latest version
+cd your-project
+npx sork-queb init
+npx sork-queb scan
+npx sork-queb fix
+npx sork-queb setup-hooks
 ```
 
 ### Usage
