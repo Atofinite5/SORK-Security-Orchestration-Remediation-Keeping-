@@ -428,6 +428,110 @@ sork status
 
 ---
 
+## 🎯 Automatic Code Quality Setup
+
+When you run `sork init`, SORK automatically configures a **complete development environment** with no additional setup required.
+
+### What Gets Installed
+
+| Tool | Purpose | Auto-Setup |
+| --- | --- | --- |
+| **Prettier** | Code formatting | ✅ Creates `.prettierrc.json` |
+| **ESLint** | Code linting & best practices | ✅ Creates `.eslintrc.json` |
+| **Zod** | Runtime type validation | ✅ Creates `src/validators/index.ts` |
+| **npm Scripts** | Quality automation | ✅ Adds `npm run qa:fix` and more |
+| **Documentation** | Best practices guide | ✅ Creates `CODE_QUALITY.md` |
+
+### Available Commands
+
+After `sork init`, you have:
+
+```bash
+npm run lint         # Check code quality
+npm run lint:fix     # Auto-fix linting issues
+npm run format       # Format code with Prettier
+npm run format:check # Verify formatting
+npm run qa           # Run full quality checks (lint + format)
+npm run qa:fix       # Fix all issues automatically ⭐
+npm run type-check   # Validate TypeScript types
+```
+
+### Example Setup Flow
+
+```bash
+# 1. Install SORK globally
+npm install -g sork-queb
+
+# 2. Create or navigate to a project
+cd my-nodejs-project
+
+# 3. One command sets up everything
+sork init
+# Output:
+#   ✅ Prettier configured (.prettierrc.json)
+#   ✅ ESLint configured (.eslintrc.json)
+#   ✅ Zod validators created (src/validators/index.ts)
+#   ✅ Package.json scripts updated
+#   ✅ Code quality guide created (CODE_QUALITY.md)
+
+# 4. Auto-fix all code issues (optional but recommended)
+npm run qa:fix
+
+# 5. Enable security pre-commit checks
+sork setup-hooks
+
+# ✨ Done! Fully configured, production-ready development environment
+```
+
+### Runtime Validation with Zod
+
+The auto-generated validators provide type-safe error handling:
+
+```typescript
+// src/validators/index.ts (auto-created)
+import { validateEnv } from './validators';
+
+// Validate environment variables at startup
+const env = validateEnv();
+
+if (env.NODE_ENV === 'production') {
+  console.log('Running in production mode');
+}
+
+// Type errors caught at runtime with clear messages:
+// ❌ Environment validation failed:
+//    - API_KEY: Required
+//    - LOG_LEVEL: Expected 'debug' | 'info' | 'warn' | 'error'
+```
+
+### Quality Checks Included
+
+**Prettier Rules:**
+
+- 2-space indentation
+- Single quotes
+- 100-character line width
+- Trailing commas in multiline structures
+- Consistent formatting across the project
+
+**ESLint Rules:**
+
+- No unused variables
+- No console.log in production
+- Strict equality (===)
+- Proper error handling
+- TypeScript best practices
+- Security-focused rules
+
+**Pre-Commit Hooks:**
+
+- Runs before every git commit
+- Blocks commits with CRITICAL vulnerabilities
+- Scans only staged changes (fast!)
+- Auto-suggests fixes via `npm run qa:fix`
+
+---
+
 ## Tech Stack
 
 ### Architecture Diagram
