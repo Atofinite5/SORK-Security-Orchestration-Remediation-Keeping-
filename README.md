@@ -4,7 +4,8 @@ SORK automates your entire vulnerability lifecycle on GitLab Duo Agent Platform.
 
 > *"SORK turns every GitLab security scan from a to-do list into a done list."*
 
----
+--->  Made by Bhargav Kalambhe 
+
 
 ## The Problem
 
