@@ -1,5 +1,5 @@
 {
-  "name": "@sork/Queb",
+  "name": "sork-queb",
   "version": "1.0.0",
   "description": "SORK - Security Orchestration, Remediation & Keeping. Global AI security brain for Node projects.",
   "main": "dist/lib/index.js",
