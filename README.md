@@ -1,8 +1,8 @@
 ## What is SORK?
 
-SORK automates your entire vulnerability lifecycle on GitLab Duo Agent Platform. Three AI agents work in sequence — **Triage** analyzes and dismisses false positives, **Remediation** generates code fixes and opens merge requests, **Keeper** verifies the fix passed security scans. Hours of manual work, done in minutes.
+SORK automates your entire vulnerability lifecycle. Three AI agents work in sequence — **Triage** analyzes and dismisses false positives, **Remediation** generates code fixes, **Keeper** verifies fixes passed security scans. Hours of manual work, done in minutes.
 
-> *"SORK turns every GitLab security scan from a to-do list into a done list."*
+> *"SORK turns every security scan from a to-do list into a done list."*
 
 --->  Made by Bhargav Kalambhe 
 
@@ -380,87 +380,50 @@ The verifier. Watches the fix pipeline and confirms vulnerabilities are resolved
 
 ### Prerequisites
 
-- GitLab Premium or Ultimate account
-- GitLab Duo Agent Platform enabled ([setup guide](https://docs.gitlab.com/user/duo_agent_platform/))
-- Security scanning templates in your CI/CD pipeline
-- VS Code with [GitLab extension](https://marketplace.visualstudio.com/items?itemName=GitLab.gitlab-workflow) (v6.15.1+) or JetBrains IDE with GitLab plugin
+- Node.js 18+ installed
+- npm installed globally
+- A Node.js project with security scanning enabled (ESLint, etc.)
 
-### Step 1 — Enable Security Scanning
+### Installation & Setup
 
-Add this to your `.gitlab-ci.yml`:
+```bash
+# Install globally
+npm install -g sork-queb
 
-```yaml
-include:
-  - template: Security/SAST.gitlab-ci.yml
-  - template: Security/Dependency-Scanning.gitlab-ci.yml
-  - template: Security/Secret-Detection.gitlab-ci.yml
+# Initialize in your project
+cd your-project
+sork init
 
-stages:
-  - build
-  - test
-  - security
+# Run security scan
+sork scan
+
+# Auto-fix vulnerabilities
+sork fix
+
+# Setup pre-commit hooks (optional)
+sork setup-hooks
 ```
-
-### Step 2 — Enable SORK Agents
-
-1. Go to **Explore → AI Catalog → Agents**
-2. Search for `SORK Triage` → click **Enable in group** → select your group
-3. Repeat for `SORK Remediation` and `SORK Keeper`
-4. In your project: **Automate → Agents** → enable all three
-
-### Step 3 — Add Project Configuration
-
-Create `AGENTS.md` in your project root:
-
-```markdown
-# SORK — Security Orchestration, Remediation & Keeping
-
-## Security Conventions
-- All security fixes must include inline comments referencing CWE IDs
-- Never suppress security warnings without documentation
-- Prefer patched dependency versions over workarounds
-- Fixes should be minimal — don't refactor unrelated code
-- Hardcoded secrets must be replaced with environment variables
-- Input validation must use allowlists, not blocklists
-```
-
-Create `.gitlab/duo/mr-review-instructions.yaml`:
-
-```yaml
-instructions:
-  - name: SORK Security Standards
-    fileFilters:
-      - "**/*.py"
-      - "**/*.js"
-      - "**/*.ts"
-      - "**/*.rb"
-      - "**/*.go"
-      - "**/*.java"
-    instructions: |
-      1. Security fixes must include inline comments referencing CWE IDs
-      2. Never suppress security warnings without documentation
-      3. Prefer patched dependency versions over workarounds
-      4. All fixes should be minimal — don't refactor unrelated code
-      5. Hardcoded secrets must be replaced with environment variables
-      6. Input validation must use allowlists, not blocklists
-```
-
-### Step 4 — Done
-
-SORK activates automatically on your next pipeline security scan.
 
 ### Usage
 
-**Automatic** — Push code → pipeline runs → security scan completes → SORK activates
-
-**Manual via @mention** — In any issue or MR:
-```
-@sork-triage analyze all vulnerabilities in this project
+**Run Security Scan:**
+```bash
+sork scan
 ```
 
-**Manual via Chat** — Open GitLab Duo Chat (Agentic mode):
+**Auto-Fix Issues:**
+```bash
+sork fix
 ```
-@SORK Triage — run a full vulnerability analysis on this project
+
+**Pre-Commit Checks:**
+```bash
+sork pre-commit
+```
+
+**View Status:**
+```bash
+sork status
 ```
 
 ---
@@ -471,19 +434,19 @@ SORK activates automatically on your next pipeline security scan.
 
 ```
  ┌──────────────────────────────────────────────────────────────────┐
- │                       GITLAB INSTANCE                             │
+ │                    NODE.JS PROJECT                                │
  │                                                                    │
  │   ┌────────────────┐       ┌──────────────────────────────────┐   │
- │   │                │       │   GitLab Duo Agent Platform       │   │
- │   │   CI/CD        │       │                                  │   │
- │   │   Pipeline     │       │   ┌──────────┐  ┌────────────┐  │   │
- │   │                │       │   │ Anthropic │  │ AI Catalog │  │   │
- │   │   ┌─────────┐  │       │   │ Claude    │  │            │  │   │
- │   │   │ SAST    │  │       │   └─────┬────┘  └─────┬──────┘  │   │
- │   │   │ DepScan │──│──────▶│         │             │          │   │
- │   │   │ SecDet  │  │       │         ▼             ▼          │   │
+ │   │                │       │   SORK System                    │   │
+ │   │   Security     │       │                                  │   │
+ │   │   Scanning     │       │   ┌──────────┐  ┌────────────┐  │   │
+ │   │   (ESLint,     │       │   │ Anthropic │  │ SORK Core  │  │   │
+ │   │   etc.)        │       │   │ Claude    │  │ Agents     │  │   │
+ │   │   ┌─────────┐  │       │   └─────┬────┘  └─────┬──────┘  │   │
+ │   │   │ Scanner │──│──────▶│         │             │          │   │
+ │   │   │ Tools   │  │       │         ▼             ▼          │   │
  │   │   └─────────┘  │       │   ┌──────────────────────────┐  │   │
- │   │                │       │   │       SORK FLOW          │  │   │
+ │   │                │       │   │   SORK AGENT FLOW        │  │   │
  │   └────────────────┘       │   │                          │  │   │
  │                            │   │  ┌────────┐              │  │   │
  │                            │   │  │Triage  │              │  │   │
@@ -509,9 +472,10 @@ SORK activates automatically on your next pipeline security scan.
  │                                          ▼                        │
  │   ┌────────────────┐       ┌──────────────────────────────────┐   │
  │   │                │       │                                  │   │
- │   │   Issues        │       │   Merge Requests                │   │
- │   │   (Triage       │       │   (Fix Patches +                │   │
- │   │    Reports)     │       │    Verification Reports)        │   │
+ │   │   Logs &       │       │   Fixed Code                     │   │
+ │   │   Reports      │       │   (Auto-patched files)           │   │
+ │   │   (Triage      │       │                                  │   │
+ │   │    Reports)    │       │   + Verification Reports         │   │
  │   │                │       │                                  │   │
  │   └────────────────┘       └──────────────────────────────────┘   │
  │                                                                    │
@@ -522,18 +486,18 @@ SORK activates automatically on your next pipeline security scan.
 
 | Layer | Technology | Role |
 |-------|-----------|------|
-| **Platform** | GitLab Duo Agent Platform | Hosts and runs all agents and flows |
-| **AI Model** | Anthropic Claude | Powers all 3 agents (default in GitLab Duo) |
-| **Agent Registry** | GitLab AI Catalog | Create, publish, and manage SORK agents |
-| **Orchestration** | GitLab Flows | Chains agents: Triage → Remediation → Keeper |
-| **CI/CD** | GitLab CI/CD + Runner | Runs security scans, triggers SORK, verifies fixes |
-| **Security Scanning** | GitLab SAST | Finds code vulnerabilities (SQLi, XSS, etc.) |
-| **Security Scanning** | GitLab Dependency Scanning | Finds CVEs in dependencies |
-| **Security Scanning** | GitLab Secret Detection | Finds hardcoded secrets and keys |
-| **Configuration** | YAML | Agent configs, flow configs, CI pipeline, review rules |
-| **Documentation** | Markdown | AGENTS.md, README, system prompts |
-| **Test Project** | Python + Flask | Sample vulnerable app for demonstration |
-| **Containers** | Docker | Flow execution environment |
+| **Runtime** | Node.js 18+ | Executes SORK agents and scanning |
+| **Language** | TypeScript | Full type safety for all agents |
+| **AI Model** | Anthropic Claude | Powers all 3 agents with security insights |
+| **Package Manager** | npm | Distributes SORK globally |
+| **Orchestration** | TypeScript Classes | Chains agents: Triage → Remediation → Keeper |
+| **CLI Tool** | minimist | Command-line argument parsing |
+| **Scanning** | Custom Scanner | JavaScript/TypeScript vulnerability detection |
+| **Security Patterns** | RegEx + AST | Pattern matching for SQLi, XSS, secrets, etc. |
+| **Code Fixing** | File API + Prettier | Applies fixes, formats, and lints code |
+| **Version Control** | Git Hooks | Pre-commit integration for automation |
+| **Configuration** | JSON | .sorkrc.json configuration file |
+| **Logging** | chalk + Console | Colored output with severity levels |
 
 ### Tools Usage Map
 
@@ -699,25 +663,9 @@ Junior dev pushes code with a security flaw. SORK catches it immediately, genera
 
 ---
 
-## Hackathon
-
-**Competition:** [GitLab Duo Agent Platform Challenge](https://gitlab.devpost.com)
-
-**Category:** Most Impactful on GitLab & Anthropic
-
-**Team:**
-
-| Member | Role | Responsibility |
-|--------|------|---------------|
-| [Your Name] | Architect | Agent design, flow orchestration, system prompts |
-| [Teammate A] | Lab Builder | Test infrastructure, vulnerability scenarios, demo video |
-| [Teammate B] | Documenter | README, Devpost submission, compliance, documentation |
-
----
-
 ## Built With
 
-`GitLab Duo Agent Platform` · `Anthropic Claude` · `GitLab AI Catalog` · `GitLab Flows` · `GitLab CI/CD` · `GitLab SAST` · `GitLab Dependency Scanning` · `GitLab Secret Detection` · `Python` · `Flask` · `Docker` · `YAML`
+`Node.js` · `TypeScript` · `Anthropic Claude` · `npm` · `ESLint` · `Prettier` · `minimist` · `chalk` · `GitHub` · `JavaScript`
 
 ---
 
@@ -754,4 +702,7 @@ SOFTWARE.
 <p align="center">
   <strong>S O R K</strong><br>
   Security Orchestration, Remediation & Keeping<br><br>
-  <em>Keeping your code secure — automatically.
+  <em>Keeping your Node.js code secure — automatically.</em><br><br>
+  Install: <code>npm install -g sork-queb</code><br>
+  GitHub: <a href="https://github.com/Atofinite5/SORK-Security-Orchestration-Remediation-Keeping-">Atofinite5/SORK</a><br>
+  npm: <a href="https://www.npmjs.com/package/sork-queb">sork-queb</a>
