@@ -5,6 +5,7 @@ export { KeeperAgent } from './agents/keeper.js';
 export { SecurityScanner } from './security/scanner.js';
 export { CodeFixer } from './fixers/codeFixer.js';
 export { Logger } from './utils/logger.js';
+export { ProjectScaffolder } from './utils/scaffolder.js';
 
 export type {
   Vulnerability,

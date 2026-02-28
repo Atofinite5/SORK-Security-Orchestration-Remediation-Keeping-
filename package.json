@@ -1,7 +1,7 @@
 {
   "name": "sork-queb",
   "version": "1.0.0",
-  "description": "SORK - Security Orchestration, Remediation & Keeping. Global AI security brain for Node projects.",
+  "description": "SORK - Security Orchestration, Remediation & Keeping. Global AI security brain for Node projects with Prettier, ESLint & Zod validation.",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "bin": {
@@ -12,7 +12,7 @@
     "README.md"
   ],
   "type": "module",
-  "keywords": ["security", "orchestration", "remediation", "linting", "auto-fix", "pre-commit"],
+  "keywords": ["security", "orchestration", "remediation", "linting", "auto-fix", "pre-commit", "prettier", "eslint", "zod", "validation", "code-quality"],
   "author": "Bhargav Kalambhe",
   "license": "MIT",
   "scripts": {
@@ -30,7 +30,8 @@
     "axios": "^1.6.0",
     "chalk": "^5.3.0",
     "dotenv": "^16.0.0",
-    "minimist": "^1.2.8"
+    "minimist": "^1.2.8",
+    "zod": "^3.22.0"
   },
   "optionalDependencies": {
     "@anthropic-ai/sdk": "^0.20.0"

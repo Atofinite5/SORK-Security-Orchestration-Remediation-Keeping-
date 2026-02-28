@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { Logger } from './utils/logger.js';
+import { ProjectScaffolder } from './utils/scaffolder.js';
 import { TriageAgent } from './agents/triage.js';
 import { RemediationAgent } from './agents/remediation.js';
 import { KeeperAgent } from './agents/keeper.js';
@@ -45,6 +46,7 @@ export class SorkOrchestrator {
   async initialize(): Promise<void> {
     this.logger.section('SORK Initialization');
 
+    // Setup SORK configuration
     const sorkConfig: SorkConfig = {
       version: '1.0.0',
       initialized: new Date().toISOString(),
@@ -68,9 +70,21 @@ export class SorkOrchestrator {
     await fs.mkdir(hooksDir, { recursive: true });
     this.logger.success(`Hooks directory created`);
 
+    // Setup development environment with Prettier, ESLint, Zod
+    this.logger.info('');
+    const scaffolder = new ProjectScaffolder(this.projectPath, this.logger);
+    await scaffolder.scaffoldAll();
+
+    this.logger.info('');
     this.logger.info('✓ Connected to Anthropic model');
     this.logger.info('✓ 3 agents registered: READY');
-    this.logger.info('\nNext: Run `sork setup-hooks` to enable pre-commit guards');
+    this.logger.info('✓ Prettier configured for code formatting');
+    this.logger.info('✓ ESLint configured for code quality');
+    this.logger.info('✓ Zod configured for runtime validation');
+    this.logger.info('\nNext steps:');
+    this.logger.info('  1. npm run qa:fix       (Fix all code quality issues)');
+    this.logger.info('  2. sork setup-hooks     (Enable security pre-commit checks)');
+    this.logger.info('  3. Read CODE_QUALITY.md (Learn best practices)');
   }
 
   async scan(): Promise<void> {
