@@ -54,7 +54,6 @@ out/
       },
       rules: {
         'no-console': ['warn', { allow: ['warn', 'error'] }],
-        'no-unused-vars': 'error',
         'prefer-const': 'error',
         'no-var': 'error',
         'eqeqeq': ['error', 'always'],
@@ -78,6 +77,7 @@ out/
           ],
           plugins: ['@typescript-eslint'],
           rules: {
+            'no-unused-vars': 'off',
             '@typescript-eslint/explicit-function-return-types': 'off',
             '@typescript-eslint/no-unused-vars': [
               'error',
@@ -184,55 +184,49 @@ export function validateApiResponse(data: unknown): ApiResponse {
   async setupScripts(): Promise<void> {
     this.logger.info('Updating package.json scripts...');
 
-    try {
-      const packageJsonPath = path.join(this.projectPath, 'package.json');
-      const packageContent = await fs.readFile(packageJsonPath, 'utf-8');
-      const packageJson = JSON.parse(packageContent);
+    const packageJsonPath = path.join(this.projectPath, 'package.json');
+    const packageContent = await fs.readFile(packageJsonPath, 'utf-8');
+    const packageJson = JSON.parse(packageContent);
 
-      if (!packageJson.scripts) {
-        packageJson.scripts = {};
-      }
-
-      // Add quality assurance scripts
-      packageJson.scripts.lint = 'eslint . --ext .ts,.tsx,.js,.jsx';
-      packageJson.scripts['lint:fix'] = 'eslint . --ext .ts,.tsx,.js,.jsx --fix';
-      packageJson.scripts.format = 'prettier --write .';
-      packageJson.scripts['format:check'] = 'prettier --check .';
-      packageJson.scripts['qa'] = 'npm run format:check && npm run lint && npm run type-check';
-      packageJson.scripts['qa:fix'] = 'npm run format && npm run lint:fix';
-
-      // Add Zod if not present
-      if (!packageJson.dependencies?.zod && !packageJson.devDependencies?.zod) {
-        if (!packageJson.dependencies) {
-          packageJson.dependencies = {};
-        }
-        packageJson.dependencies.zod = '^3.22.0';
-      }
-
-      // Ensure Prettier and ESLint are in devDependencies
-      if (!packageJson.devDependencies) {
-        packageJson.devDependencies = {};
-      }
-      packageJson.devDependencies.prettier = '^3.0.0';
-      packageJson.devDependencies.eslint = '^8.50.0';
-
-      await fs.writeFile(
-        packageJsonPath,
-        JSON.stringify(packageJson, null, 2),
-      );
-
-      this.logger.success('✓ Package.json scripts updated');
-      this.logger.info('  Available commands:');
-      this.logger.info('    npm run lint       - Check code quality');
-      this.logger.info('    npm run lint:fix   - Auto-fix linting issues');
-      this.logger.info('    npm run format     - Format code with Prettier');
-      this.logger.info('    npm run qa         - Run full quality checks');
-      this.logger.info('    npm run qa:fix     - Auto-fix all quality issues');
-    } catch (error) {
-      this.logger.warn(
-        `Could not update package.json: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    if (!packageJson.scripts) {
+      packageJson.scripts = {};
     }
+
+    // Add quality assurance scripts
+    packageJson.scripts.lint = 'eslint . --ext .ts,.tsx,.js,.jsx';
+    packageJson.scripts['lint:fix'] = 'eslint . --ext .ts,.tsx,.js,.jsx --fix';
+    packageJson.scripts.format = 'prettier --write .';
+    packageJson.scripts['format:check'] = 'prettier --check .';
+    packageJson.scripts.qa = 'npm run format:check && npm run lint';
+    packageJson.scripts['qa:fix'] = 'npm run format && npm run lint:fix';
+
+    // Add Zod if not present
+    if (!packageJson.dependencies?.zod && !packageJson.devDependencies?.zod) {
+      if (!packageJson.dependencies) {
+        packageJson.dependencies = {};
+      }
+      packageJson.dependencies.zod = '^3.22.0';
+    }
+
+    // Ensure Prettier and ESLint are in devDependencies
+    if (!packageJson.devDependencies) {
+      packageJson.devDependencies = {};
+    }
+    packageJson.devDependencies.prettier = '^3.0.0';
+    packageJson.devDependencies.eslint = '^8.50.0';
+
+    await fs.writeFile(
+      packageJsonPath,
+      JSON.stringify(packageJson, null, 2),
+    );
+
+    this.logger.success('✓ Package.json scripts updated');
+    this.logger.info('  Available commands:');
+    this.logger.info('    npm run lint       - Check code quality');
+    this.logger.info('    npm run lint:fix   - Auto-fix linting issues');
+    this.logger.info('    npm run format     - Format code with Prettier');
+    this.logger.info('    npm run qa         - Run full quality checks');
+    this.logger.info('    npm run qa:fix     - Auto-fix all quality issues');
   }
 
   async createQualityGuide(): Promise<void> {

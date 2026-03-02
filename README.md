@@ -394,7 +394,7 @@ The verifier. Watches the fix pipeline and confirms vulnerabilities are resolved
 
 ```bash
 # Install globally (one-time)
-npm install -g sork-queb
+npm install -g sork
 
 # Initialize in your project
 cd your-project
@@ -415,10 +415,10 @@ sork setup-hooks
 ```bash
 # Run without installing globally - always latest version
 cd your-project
-npx sork-queb init
-npx sork-queb scan
-npx sork-queb fix
-npx sork-queb setup-hooks
+npx sork init
+npx sork scan
+npx sork fix
+npx sork setup-hooks
 ```
 
 ### Usage
@@ -477,7 +477,7 @@ npm run type-check   # Validate TypeScript types
 
 ```bash
 # 1. Install SORK globally
-npm install -g sork-queb
+npm install -g sork
 
 # 2. Create or navigate to a project
 cd my-nodejs-project
@@ -824,6 +824,6 @@ SOFTWARE.
   <strong>S O R K</strong><br>
   Security Orchestration, Remediation & Keeping<br><br>
   <em>Keeping your Node.js code secure — automatically.</em><br><br>
-  Install: <code>npm install -g sork-queb</code><br>
+  Install: <code>npm install -g sork</code><br>
   GitHub: <a href="https://github.com/Atofinite5/SORK-Security-Orchestration-Remediation-Keeping-">Atofinite5/SORK</a><br>
-  npm: <a href="https://www.npmjs.com/package/sork-queb">sork-queb</a>
+  npm: <a href="https://www.npmjs.com/package/sork">sork</a>
