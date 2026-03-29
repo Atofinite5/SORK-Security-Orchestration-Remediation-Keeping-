@@ -119,7 +119,7 @@ Each letter in **SORK** maps directly to a capability:
  │                          ▼                                            │
  │   ┌───────────────────────────────────────────────────────────┐       │
  │   │                                                           │       │
- │   │   ✅ AGENT 03: SORK KEEPER                     [K]       │       │
+ │   │   ✅ AGENT 03: SORK KEEPER                     [K]        │       │
  │   │                                                           │       │
  │   │   Responsibilities:                                       │       │
  │   │   • Monitor the fix MR's CI/CD pipeline                   │       │
@@ -133,7 +133,7 @@ Each letter in **SORK** maps directly to a capability:
  │   │   Get Job Logs · List Security Findings                   │       │
  │   │   Create Merge Request Note · List Vulnerabilities        │       │
  │   │                                                           │       │
- │   │   Output: Verification report — SAFE TO MERGE / NOT      │       │
+ │   │   Output: Verification report — SAFE TO MERGE / NOT       │       │
  │   │                                                           │       │
  │   └───────────────────────────────────────────────────────────┘       │
  │                                                                       │
@@ -239,7 +239,7 @@ The first line of defense. Analyzes every vulnerability and separates real threa
 ║  [DISMISSED] CWE-327                                 ║
 ║  Weak cryptographic algorithm                        ║
 ║  → Reason: MD5 usage found in test file only         ║
-║    (test_helpers.py), not in production code          ║
+║    (test_helpers.py), not in production code         ║
 ║                                                      ║
 ║  [DISMISSED] CWE-22                                  ║
 ║  Path traversal in file handler                      ║
@@ -324,9 +324,9 @@ The fix engine. Generates targeted code patches for every confirmed vulnerabilit
 ║  Testing recommendations:                            ║
 ║  • Verify login flow still works (auth.py change)    ║
 ║  • Set API_KEY and DB_PASSWORD env vars in CI        ║
-║  • Check user profile page renders correctly          ║
+║  • Check user profile page renders correctly         ║
 ║                                                      ║
-║  Linked: Triage Report #142                          ║
+║  Linked: Triage Report #142                        ║
 ║                                                      ║
 ║                       — SORK Remediation 🔧          ║
 ╚══════════════════════════════════════════════════════╝

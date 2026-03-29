@@ -186,7 +186,12 @@ export function validateApiResponse(data: unknown): ApiResponse {
 
     const packageJsonPath = path.join(this.projectPath, 'package.json');
     const packageContent = await fs.readFile(packageJsonPath, 'utf-8');
-    const packageJson = JSON.parse(packageContent);
+    interface PackageJson {
+      scripts?: Record<string, string>;
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    }
+    const packageJson: PackageJson = JSON.parse(packageContent) as PackageJson;
 
     if (!packageJson.scripts) {
       packageJson.scripts = {};

@@ -53,7 +53,7 @@ export class SecurityScanner {
   private async scanJavaScript(): Promise<Vulnerability[]> {
     const vulnerabilities: Vulnerability[] = [];
     try {
-      const files = await this.findFiles('**/*.{ts,tsx,js,jsx}', [
+      const files = await this.findFiles(['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'], [
         'node_modules',
         'dist',
         '.git',
@@ -243,8 +243,9 @@ export class SecurityScanner {
     return vulnerabilities;
   }
 
-  private async findFiles(pattern: string, exclude: string[]): Promise<string[]> {
+  private async findFiles(patterns: string | string[], exclude: string[]): Promise<string[]> {
     const files: string[] = [];
+    const patternArray = Array.isArray(patterns) ? patterns : [patterns];
 
     const walk = async (dir: string): Promise<void> => {
       try {
@@ -261,7 +262,7 @@ export class SecurityScanner {
 
           if (entry.isDirectory()) {
             await walk(fullPath);
-          } else if (this.matchPattern(relativePath, pattern)) {
+          } else if (patternArray.some((pattern) => this.matchPattern(relativePath, pattern))) {
             files.push(fullPath);
           }
         }

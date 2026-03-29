@@ -25,7 +25,7 @@ const argv: CliArgs = minimist(process.argv.slice(2), {
     m: 'model',
   },
   default: {
-    path: process.cwd(),
+    path: '.',
     model: 'anthropic',
   },
 }) as CliArgs;
@@ -39,7 +39,7 @@ function showBanner(): void {
  ╚════██║ ██║   ██║ ██╔══██╗ ██╔═██╗
  ███████║ ╚██████╔╝ ██║  ██║ ██║  ██╗
  ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝
-  `)
+  `),
   );
   console.log(chalk.bold('Security Orchestration, Remediation & Keeping'));
   console.log(chalk.dim('Global AI Security Brain for Node Projects\n'));
@@ -99,49 +99,49 @@ async function main(): Promise<void> {
     const orchestrator = new SorkOrchestrator(options);
 
     switch (command) {
-      case 'init':
-        logger.info('Initializing SORK in project...');
-        await orchestrator.initialize();
-        logger.success(
-          'SORK initialized! Run `sork setup-hooks` to enable pre-commit guards.'
-        );
-        break;
+    case 'init':
+      logger.info('Initializing SORK in project...');
+      await orchestrator.initialize();
+      logger.success(
+        'SORK initialized! Run `sork setup-hooks` to enable pre-commit guards.',
+      );
+      break;
 
-      case 'scan':
-        logger.info('Running security scan...');
-        await orchestrator.scan();
-        break;
+    case 'scan':
+      logger.info('Running security scan...');
+      await orchestrator.scan();
+      break;
 
-      case 'fix':
-        logger.info('Auto-fixing issues...');
-        await orchestrator.fix();
-        logger.success('Auto-fix complete!');
-        break;
+    case 'fix':
+      logger.info('Auto-fixing issues...');
+      await orchestrator.fix();
+      logger.success('Auto-fix complete!');
+      break;
 
-      case 'pre-commit':
-        logger.info('Running pre-commit checks...');
-        await orchestrator.preCommit();
-        break;
+    case 'pre-commit':
+      logger.info('Running pre-commit checks...');
+      await orchestrator.preCommit();
+      break;
 
-      case 'setup-hooks':
-        logger.info('Setting up git hooks...');
-        await orchestrator.setupHooks();
-        logger.success('Git hooks installed!');
-        break;
+    case 'setup-hooks':
+      logger.info('Setting up git hooks...');
+      await orchestrator.setupHooks();
+      logger.success('Git hooks installed!');
+      break;
 
-      case 'status':
-        logger.info('Checking SORK status...');
-        await orchestrator.status();
-        break;
+    case 'status':
+      logger.info('Checking SORK status...');
+      await orchestrator.status();
+      break;
 
-      default:
-        logger.error(`Unknown command: ${command}`);
-        showHelp();
-        process.exit(1);
+    default:
+      logger.error(`Unknown command: ${command}`);
+      showHelp();
+      process.exit(1);
     }
   } catch (error) {
     logger.error(
-      `Failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
     if (process.env.DEBUG) {
       console.error(error);
