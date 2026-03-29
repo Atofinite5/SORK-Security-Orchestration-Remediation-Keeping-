@@ -1,6 +1,6 @@
 {
   "name": "sork-queb",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "SORK - Security Orchestration, Remediation & Keeping. Global AI security brain for Node projects with Prettier, ESLint & Zod validation.",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
