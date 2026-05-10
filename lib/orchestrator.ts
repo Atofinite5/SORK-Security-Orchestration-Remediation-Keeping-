@@ -7,33 +7,23 @@ import { RemediationAgent } from './agents/remediation.js';
 import { KeeperAgent } from './agents/keeper.js';
 import { SecurityScanner } from './security/scanner.js';
 import { CodeFixer } from './fixers/codeFixer.js';
-import {
-  SorkSession,
-  SorkConfig,
-  SorkOptions,
-} from './types/index.js';
+import { AIClient, AIProvider } from './ai/client.js';
+import { SorkSession, SorkConfig, SorkOptions, Vulnerability } from './types/index.js';
 
 export class SorkOrchestrator {
   private projectPath: string;
   private logger: Logger;
-  private triage: TriageAgent;
-  private remediation: RemediationAgent;
-  private keeper: KeeperAgent;
   private scanner: SecurityScanner;
   private fixer: CodeFixer;
   private session: SorkSession;
+  private ai: AIProvider | null = null;
+  private aiInitialized = false;
 
   constructor(options: SorkOptions = {}) {
     this.projectPath = options.projectPath || process.cwd();
     this.logger = new Logger('ORCHESTRATOR');
-
-    this.triage = new TriageAgent(this.logger);
-    this.remediation = new RemediationAgent(this.logger);
-    this.keeper = new KeeperAgent(this.logger);
-
     this.scanner = new SecurityScanner(this.projectPath, this.logger);
     this.fixer = new CodeFixer(this.projectPath, this.logger);
-
     this.session = {
       timestamp: new Date(),
       vulnerabilities: [],
@@ -43,54 +33,56 @@ export class SorkOrchestrator {
     };
   }
 
+  private async getAI(): Promise<AIProvider | null> {
+    if (!this.aiInitialized) {
+      this.ai = await AIClient.create(this.logger);
+      this.aiInitialized = true;
+      if (!this.ai) {
+        this.logger.warn(
+          'No API key configured — running in fallback mode (deterministic rules only)'
+        );
+        this.logger.info('  Configure with: sork config set-key <YOUR_API_KEY>');
+      }
+    }
+    return this.ai;
+  }
+
   async initialize(): Promise<void> {
     this.logger.section('SORK Initialization');
 
-    // Setup SORK configuration
     const sorkConfig: SorkConfig = {
-      version: '1.0.0',
+      version: '1.3.0',
       initialized: new Date().toISOString(),
-      agents: {
-        triage: true,
-        remediation: true,
-        keeper: true,
-      },
-      settings: {
-        autoFix: true,
-        preCommitGuards: true,
-        strictMode: false,
-      },
+      agents: { triage: true, remediation: true, keeper: true },
+      settings: { autoFix: true, preCommitGuards: true, strictMode: false },
     };
 
-    const configPath = path.join(this.projectPath, '.sorkrc.json');
-    await fs.writeFile(configPath, JSON.stringify(sorkConfig, null, 2));
-    this.logger.success(`Configuration created: ${configPath}`);
+    await fs.writeFile(
+      path.join(this.projectPath, '.sorkrc.json'),
+      JSON.stringify(sorkConfig, null, 2)
+    );
+    this.logger.success('Configuration created: .sorkrc.json');
 
-    const hooksDir = path.join(this.projectPath, '.sork', 'hooks');
-    await fs.mkdir(hooksDir, { recursive: true });
-    this.logger.success(`Hooks directory created`);
+    await fs.mkdir(path.join(this.projectPath, '.sork', 'hooks'), { recursive: true });
+    this.logger.success('Hooks directory created');
 
-    // Setup development environment with Prettier, ESLint, Zod
     this.logger.info('');
     const scaffolder = new ProjectScaffolder(this.projectPath, this.logger);
     await scaffolder.scaffoldAll();
 
     this.logger.info('');
-    this.logger.info('✓ Connected to Anthropic model');
-    this.logger.info('✓ 3 agents registered: READY');
-    this.logger.info('✓ Prettier configured for code formatting');
-    this.logger.info('✓ ESLint configured for code quality');
-    this.logger.info('✓ Zod configured for runtime validation');
-    this.logger.info('\nNext steps:');
-    this.logger.info('  1. npm run qa:fix       (Fix all code quality issues)');
-    this.logger.info('  2. sork setup-hooks     (Enable security pre-commit checks)');
-    this.logger.info('  3. Read CODE_QUALITY.md (Learn best practices)');
+    this.logger.info('Next steps:');
+    this.logger.info('  1. sork config set-key <YOUR_API_KEY>   (Cloud or BYOK)');
+    this.logger.info('  2. sork scan                            (Run a security scan)');
+    this.logger.info('  3. sork setup-hooks                     (Block unsafe commits)');
   }
 
   async scan(): Promise<void> {
     this.logger.section('SORK Security Scan');
 
-    this.logger.info('Agent 01 (TRIAGE) - Analyzing project...');
+    const ai = await this.getAI();
+    const triage = new TriageAgent(this.logger, ai, this.projectPath);
+
     const vulnerabilities = await this.scanner.scan();
     this.session.vulnerabilities = vulnerabilities;
 
@@ -99,26 +91,27 @@ export class SorkOrchestrator {
       return;
     }
 
-    this.logger.info(`Detected ${vulnerabilities.length} potential issues`);
-    const triageResults = await this.triage.analyze(vulnerabilities);
+    this.logger.info(`Detected ${vulnerabilities.length} potential issue(s)`);
+    const triageResults = await triage.analyze(vulnerabilities);
 
     this.session.dismissed = triageResults.dismissed;
     this.session.vulnerabilities = triageResults.confirmed;
 
     this.logger.warn(
-      `${triageResults.dismissed.length} false positives dismissed, ` +
-        `${triageResults.confirmed.length} confirmed threats`
+      `${triageResults.dismissed.length} dismissed, ${triageResults.confirmed.length} confirmed`
     );
 
     if (triageResults.confirmed.length > 0) {
       this.logger.section('Confirmed Vulnerabilities');
       triageResults.confirmed.forEach((vuln, i) => {
         console.log(
-          `${i + 1}. [${vuln.severity}] ${vuln.type}\n` +
-            `   File: ${vuln.file}:${vuln.line}\n` +
-            `   Issue: ${vuln.message}`
+          `${i + 1}. [${vuln.severity}] ${vuln.type}\n   ${vuln.file}:${vuln.line}\n   ${vuln.message}`
         );
       });
+    }
+
+    if (ai) {
+      ai.printUsage();
     }
   }
 
@@ -126,66 +119,58 @@ export class SorkOrchestrator {
     this.logger.section('SORK Remediation');
 
     if (this.session.vulnerabilities.length === 0) {
-      this.logger.warn('No vulnerabilities to fix. Run `sork scan` first.');
-      return;
-    }
-
-    this.logger.info(
-      `Agent 02 (REMEDIATION) - Generating fixes for ${this.session.vulnerabilities.length} issues...`
-    );
-
-    const fixes = await this.remediation.generateFixes(
-      this.session.vulnerabilities
-    );
-    this.session.fixes = fixes;
-
-    for (const fix of fixes) {
-      try {
-        await this.fixer.applyFix(fix);
-        this.logger.success(`Fixed: ${fix.type} in ${fix.file}`);
-      } catch (error) {
-        this.logger.error(
-          `Failed to fix ${fix.file}: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`
-        );
+      // Allow `sork fix` without prior scan: scan now.
+      await this.scan();
+      if (this.session.vulnerabilities.length === 0) {
+        return;
       }
     }
 
-    this.logger.success(`${fixes.length} fixes applied`);
+    const ai = await this.getAI();
+    const remediation = new RemediationAgent(this.logger, ai, this.projectPath);
+    const keeper = new KeeperAgent(this.logger, this.scanner, this.projectPath);
+
+    const fixes = await remediation.generateFixes(this.session.vulnerabilities);
+    this.session.fixes = fixes;
+
+    const rangeByFix = new Map(
+      fixes.map((f) => {
+        const matchingVuln = this.session.vulnerabilities.find(
+          (v: Vulnerability) => v.file === f.file && v.line === f.line && v.type === f.type
+        );
+        return [f, matchingVuln?.range] as const;
+      })
+    );
+
+    await this.fixer.applyMultipleFixes(fixes.map((fix) => ({ fix, range: rangeByFix.get(fix) })));
 
     this.logger.section('SORK Verification');
-    this.logger.info('Agent 03 (KEEPER) - Verifying fixes...');
+    const verification = await keeper.verify(fixes, this.session.vulnerabilities);
+    this.session.verified = verification.verified;
+    keeper.printSummary(verification);
 
-    const verificationResults = await this.keeper.verify(
-      fixes,
-      this.session.vulnerabilities
-    );
-    this.session.verified = verificationResults.verified;
-
-    this.keeper.printSummary(verificationResults);
+    if (ai) {
+      ai.printUsage();
+    }
   }
 
   async preCommit(): Promise<boolean> {
     this.logger.section('Pre-Commit Security Check');
 
     const stagedVulns = await this.scanner.scanStaged();
-
     if (stagedVulns.length === 0) {
-      this.logger.success('All checks passed! Safe to commit.');
+      this.logger.success('No issues in staged changes. Safe to commit.');
       return true;
     }
 
-    this.logger.error(`${stagedVulns.length} issues found in staged changes:`);
-    stagedVulns.forEach((vuln, i) => {
-      console.log(
-        `${i + 1}. [${vuln.severity}] ${vuln.message} (${vuln.file})`
-      );
+    this.logger.error(`${stagedVulns.length} issue(s) in staged changes:`);
+    stagedVulns.forEach((v, i) => {
+      console.log(`  ${i + 1}. [${v.severity}] ${v.type} - ${v.file}:${v.line} - ${v.message}`);
     });
 
     const critical = stagedVulns.filter((v) => v.severity === 'CRITICAL');
     if (critical.length > 0) {
-      this.logger.error('\n🚫 CRITICAL issues detected. Commit blocked.');
+      this.logger.error('\nCRITICAL issues detected. Commit blocked.');
       console.log('Run `sork fix` to auto-resolve, then try again.');
       process.exit(1);
     }
@@ -196,56 +181,65 @@ export class SorkOrchestrator {
   async setupHooks(): Promise<void> {
     this.logger.section('Setting Up Git Hooks');
 
-    const hookContent = `#!/bin/bash
+    const hookContent = `#!/bin/sh
+# Installed by SORK
 sork pre-commit
-exit_code=$?
-
-if [ $exit_code -ne 0 ]; then
+status=$?
+if [ $status -ne 0 ]; then
   echo "Pre-commit checks failed. Commit aborted."
   exit 1
 fi
-
 exit 0
 `;
 
     const hooksDir = path.join(this.projectPath, '.git', 'hooks');
-    const preCommitPath = path.join(hooksDir, 'pre-commit');
-
     await fs.mkdir(hooksDir, { recursive: true });
-    await fs.writeFile(preCommitPath, hookContent, { mode: 0o755 });
-
+    await fs.writeFile(path.join(hooksDir, 'pre-commit'), hookContent, { mode: 0o755 });
     this.logger.success('Pre-commit hook installed at .git/hooks/pre-commit');
-    this.logger.info('Hooks will run automatically before each commit');
   }
 
   async status(): Promise<void> {
     this.logger.section('SORK Status');
 
+    const ai = await this.getAI();
+
+    const config = await (await import('./config/index.js')).resolveAIConfig();
+    const mode = !ai
+      ? 'fallback (no API key)'
+      : !config && (process.env.COHERE_API_KEY || process.env.SORK_COHERE_API_KEY)
+        ? 'Cohere fallback'
+        : config?.apiKey.startsWith('sork_live_')
+          ? process.env.COHERE_API_KEY || process.env.SORK_COHERE_API_KEY
+            ? 'SORK Cloud (managed) + Cohere fallback'
+            : 'SORK Cloud (managed)'
+          : process.env.COHERE_API_KEY || process.env.SORK_COHERE_API_KEY
+            ? 'BYOK direct + Cohere fallback'
+            : 'BYOK direct';
     console.log('Agents:');
-    console.log('  ✓ Agent 01 (TRIAGE)      - Operational');
-    console.log('  ✓ Agent 02 (REMEDIATION) - Operational');
-    console.log('  ✓ Agent 03 (KEEPER)      - Operational');
+    console.log(`  ✓ Agent 01 (TRIAGE)      ${mode}`);
+    console.log(`  ✓ Agent 02 (REMEDIATION) ${mode}`);
+    console.log('  ✓ Agent 03 (KEEPER)      Re-scan + audit log');
     console.log();
-    console.log('Configuration:');
 
     try {
-      const configPath = path.join(this.projectPath, '.sorkrc.json');
-      const configContent = await fs.readFile(configPath, 'utf-8');
-      const config = JSON.parse(configContent) as SorkConfig;
-      console.log(`  Version: ${config.version}`);
-      console.log(`  Initialized: ${config.initialized}`);
-      console.log(`  Auto-fix: ${config.settings.autoFix ? '✓' : '✗'}`);
-      console.log(
-        `  Pre-commit Guards: ${config.settings.preCommitGuards ? '✓' : '✗'}`
-      );
+      const config = JSON.parse(
+        await fs.readFile(path.join(this.projectPath, '.sorkrc.json'), 'utf-8')
+      ) as SorkConfig;
+      console.log('Project config:');
+      console.log(`  Version:      ${config.version}`);
+      console.log(`  Initialized:  ${config.initialized}`);
+      console.log(`  Auto-fix:     ${config.settings.autoFix ? 'on' : 'off'}`);
+      console.log(`  Pre-commit:   ${config.settings.preCommitGuards ? 'on' : 'off'}`);
     } catch {
-      console.log('  Status: Not initialized. Run `sork init` first.');
+      console.log('Project config: not initialized. Run `sork init`.');
     }
 
     console.log();
     console.log('Commands:');
-    console.log('  sork scan       - Run security scan');
-    console.log('  sork fix        - Auto-fix detected issues');
-    console.log('  sork pre-commit - Run pre-commit checks');
+    console.log('  sork config set-key <YOUR_API_KEY>           Configure AI key');
+    console.log('  sork scan                                    Run security scan');
+    console.log('  sork fix                                     Generate + apply fixes');
+    console.log('  sork pre-commit                              Run pre-commit checks');
+    console.log('  sork setup-hooks                             Install git hook');
   }
 }

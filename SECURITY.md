@@ -10,16 +10,16 @@ SORK follows the principle: **"If SORK is insecure, it cannot secure others."**
 
 ### Security Standards Applied to SORK
 
-| Control | Status | Evidence |
-|---------|--------|----------|
-| **SAST Scanning** | ✅ Enabled | `.gitlab-ci.yml` includes Security/SAST.gitlab-ci.yml |
-| **Secret Detection** | ✅ Enabled | `.gitlab-ci.yml` includes Secret-Detection.gitlab-ci.yml |
-| **Dependency Scanning** | ✅ Enabled | `.gitlab-ci.yml` includes Dependency-Scanning.gitlab-ci.yml |
-| **No Hardcoded Secrets** | ✅ Verified | No real tokens/keys in repo |
-| **Agent Failure Policy** | ✅ Strict | `allow_failure: false` in agent-config.yml |
-| **MR Review Rules** | ✅ Enforced | config/mr-review.yml enforces security checks |
-| **Input Validation** | ✅ Required | All agent inputs validated before processing |
-| **Audit Trail** | ✅ Complete | All agent actions logged and signed |
+| Control                  | Status      | Evidence                                                    |
+| ------------------------ | ----------- | ----------------------------------------------------------- |
+| **SAST Scanning**        | ✅ Enabled  | `.gitlab-ci.yml` includes Security/SAST.gitlab-ci.yml       |
+| **Secret Detection**     | ✅ Enabled  | `.gitlab-ci.yml` includes Secret-Detection.gitlab-ci.yml    |
+| **Dependency Scanning**  | ✅ Enabled  | `.gitlab-ci.yml` includes Dependency-Scanning.gitlab-ci.yml |
+| **No Hardcoded Secrets** | ✅ Verified | No real tokens/keys in repo                                 |
+| **Agent Failure Policy** | ✅ Strict   | `allow_failure: false` in agent-config.yml                  |
+| **MR Review Rules**      | ✅ Enforced | config/mr-review.yml enforces security checks               |
+| **Input Validation**     | ✅ Required | All agent inputs validated before processing                |
+| **Audit Trail**          | ✅ Complete | All agent actions logged and signed                         |
 
 ---
 
@@ -28,12 +28,14 @@ SORK follows the principle: **"If SORK is insecure, it cannot secure others."**
 ### 1. Code-Level Security
 
 **Test Vulnerabilities (Intentional)**
+
 - ✅ Located in isolated `test-vulns/` directory
 - ✅ NOT included in agent prompts or configuration
 - ✅ Clearly marked as demo/testing code
 - ✅ Demonstrates SORK's ability to find vulnerabilities
 
 **Production Code (Non-test files)**
+
 - ✅ Agent prompts: No secrets, no injection risks
 - ✅ Configuration files: No hardcoded credentials
 - ✅ Documentation: Security examples use placeholders
@@ -41,6 +43,7 @@ SORK follows the principle: **"If SORK is insecure, it cannot secure others."**
 ### 2. Infrastructure Security
 
 **CI/CD Pipeline**
+
 ```yaml
 # .gitlab-ci.yml
 include:
@@ -50,6 +53,7 @@ include:
 ```
 
 Every commit triggers:
+
 - ✅ Static Application Security Testing (SAST)
 - ✅ Hardcoded Secret Detection
 - ✅ Dependency Vulnerability Scanning
@@ -57,19 +61,22 @@ Every commit triggers:
 ### 3. Agent Security
 
 **System Prompts**
+
 - ✅ Triage agent: Follows CVSS/CWE standards (agents/triage.md)
 - ✅ Remediation agent: Minimal change principle (agents/remediation.md)
 - ✅ Keeper agent: Strict verification (agents/keeper.md)
 
 **Agent Configuration**
+
 ```yaml
 # config/agent-config.yml
 agents:
-  - name: "SORK Triage"
-    allow_failure: false  # ← CRITICAL: No bypass
+  - name: 'SORK Triage'
+    allow_failure: false # ← CRITICAL: No bypass
 ```
 
 **Agent Restrictions**
+
 - ✅ Cannot suppress security findings without documentation
 - ✅ Cannot auto-merge high-severity fixes
 - ✅ Cannot modify security rules without review
@@ -78,12 +85,14 @@ agents:
 ### 4. Data Protection
 
 **Credentials Handling**
+
 - ✅ No credentials in code
 - ✅ `.env` file required for runtime (not committed)
 - ✅ All examples use `glpat-your-token-here` placeholders
 - ✅ Documentation explains secure setup
 
 **Audit Trail**
+
 - ✅ All agent actions logged with timestamp
 - ✅ All changes linked to issue IDs
 - ✅ All MRs include vulnerability references
@@ -92,10 +101,11 @@ agents:
 ### 5. Configuration Security
 
 **MR Review Rules** (config/mr-review.yml)
+
 ```yaml
 rules:
-  - name: "Security Review First"
-    priority: 1  # ← Highest priority
+  - name: 'Security Review First'
+    priority: 1 # ← Highest priority
     checks:
       - vulnerability_addressed
       - no_new_vulnerabilities
@@ -103,6 +113,7 @@ rules:
 ```
 
 **Enforcement**
+
 - ✅ All SORK-generated MRs reviewed by Keeper agent
 - ✅ No auto-merge without verification
 - ✅ Secrets scanning mandatory before merge
@@ -115,6 +126,7 @@ rules:
 ### Audit Performed: 2026-02-24
 
 **Finding 1: Test Vulnerabilities**
+
 - Status: ✅ **INTENTIONAL & ISOLATED**
 - Details: 6 vulnerabilities in test-vulns/app.py (SQLi, XSS, etc.)
 - Reason: Demonstrate SORK's detection capabilities
@@ -122,6 +134,7 @@ rules:
 - Evidence: Located in `/test-vulns/` directory separate from agent code
 
 **Finding 2: Hardcoded Secrets in test-vulns/config.py**
+
 - Status: ✅ **INTENTIONAL & ISOLATED**
 - Details: API keys, database passwords, cloud credentials
 - Reason: Test Secret Detection agent capabilities
@@ -129,6 +142,7 @@ rules:
 - Evidence: `config.py` comments explain each fake secret
 
 **Finding 3: Real Credentials Check**
+
 - Status: ✅ **VERIFIED CLEAN**
 - Checked: `.gitlab-ci.yml`, all `.yml` configs, all `.md` docs
 - Result: Zero real GitLab tokens found
@@ -137,6 +151,7 @@ rules:
 - Evidence: No matches for `glpat-[real-token]` patterns
 
 **Finding 4: Agent Configuration**
+
 - Status: ✅ **SECURITY-FIRST**
 - Config: `allow_failure: false` — agents cannot bypass security
 - Config: MR review rules enforce security checks
@@ -144,6 +159,7 @@ rules:
 - Evidence: config/agent-config.yml, config/mr-review.yml
 
 **Finding 5: Documentation Standards**
+
 - Status: ✅ **SECURE BY DEFAULT**
 - AGENTS.md: 20+ security conventions documented
 - README.md: Complete API examples with token handling
@@ -155,29 +171,35 @@ rules:
 ## 🚨 Known Issues & Mitigations
 
 ### Issue 1: Test Vulnerabilities Included
+
 **What**: `test-vulns/` contains real security issues
 **Why**: SORK needs to demonstrate it can find vulnerabilities
 **Risk Level**: 🟢 LOW (isolated, non-production)
 **Mitigation**:
+
 - Clearly marked in project structure
 - Excluded from SAST scans via `SAST_EXCLUDED_PATHS`
 - Never used in production builds
 - Documented as test-only in README
 
 ### Issue 2: Agent Prompts Are Visible
+
 **What**: Agent system prompts stored in `/agents/` as text files
 **Why**: Transparency + easy customization
 **Risk Level**: 🟢 LOW (prompts are non-sensitive)
 **Mitigation**:
+
 - Prompts contain no secrets or sensitive data
 - Prompts are designed to be reviewed by security teams
 - Version controlled for audit trail
 
 ### Issue 3: Configuration Files in Git
+
 **What**: Configuration files (agent-config.yml, mr-review.yml) in repo
 **Why**: Configuration must be under version control
 **Risk Level**: 🟢 LOW (no secrets in configs)
 **Mitigation**:
+
 - Real secrets loaded from `.env` (not committed)
 - Configuration examples use placeholders
 - `.gitignore` excludes actual credential files
@@ -187,29 +209,34 @@ rules:
 ## 🔐 Security Best Practices Used
 
 ### 1. Principle of Least Privilege
+
 - Agents only have access to required tools
 - Agent configuration specifies exact capabilities
 - No agent can modify its own rules
 
 ### 2. Defense in Depth
+
 - SAST scanning (catches code issues)
 - Secret Detection (catches credentials)
 - Dependency scanning (catches vulnerable libs)
 - MR review rules (catches security gaps)
 
 ### 3. Audit Trail
+
 - Every agent action logged with timestamp
 - Every fix linked to original vulnerability
 - Every approval signed by Keeper agent
 - All history retained for compliance
 
 ### 4. Fail Secure
+
 - `allow_failure: false` — no bypass of security agents
 - Merge blocked if Keeper verification fails
 - MR review rules mandatory, not optional
 - Security issues block merge automatically
 
 ### 5. Separation of Concerns
+
 - Test vulnerabilities isolated (test-vulns/)
 - Agent prompts separate (agents/)
 - Configuration separate (config/)
@@ -220,18 +247,21 @@ rules:
 ## 📊 Security Metrics
 
 ### Code Coverage
+
 - **Agent Prompts**: 100% security-reviewed
 - **Configuration Files**: 100% security-checked
 - **Test Files**: 100% intentionally vulnerable (for testing)
 - **Production Code**: 0% intentional vulnerabilities
 
 ### Compliance
+
 - ✅ Follows OWASP Top 10 principles
 - ✅ References CWE/CVSS standards
 - ✅ Implements secure coding practices
 - ✅ Maintains complete audit trails
 
 ### Testing
+
 - ✅ Test vulnerabilities for SAST testing
 - ✅ Hardcoded secrets for Secret Detection testing
 - ✅ Outdated dependencies for Dependency scanning testing

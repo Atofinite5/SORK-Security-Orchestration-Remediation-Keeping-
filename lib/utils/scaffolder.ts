@@ -3,7 +3,10 @@ import path from 'path';
 import { Logger } from './logger.js';
 
 export class ProjectScaffolder {
-  constructor(private projectPath: string, private logger: Logger) {}
+  constructor(
+    private projectPath: string,
+    private logger: Logger
+  ) {}
 
   async setupPrettier(): Promise<void> {
     this.logger.info('Setting up Prettier...');
@@ -56,11 +59,11 @@ out/
         'no-console': ['warn', { allow: ['warn', 'error'] }],
         'prefer-const': 'error',
         'no-var': 'error',
-        'eqeqeq': ['error', 'always'],
-        'curly': 'error',
-        'semi': ['error', 'always'],
-        'quotes': ['error', 'single'],
-        'indent': ['error', 2],
+        eqeqeq: ['error', 'always'],
+        curly: 'error',
+        semi: ['error', 'always'],
+        quotes: ['error', 'single'],
+        indent: ['error', 2],
         'comma-dangle': ['error', 'always-multiline'],
         'space-before-function-paren': ['error', 'never'],
         'keyword-spacing': 'error',
@@ -71,18 +74,12 @@ out/
         {
           files: ['*.ts', '*.tsx'],
           parser: '@typescript-eslint/parser',
-          extends: [
-            'eslint:recommended',
-            'plugin:@typescript-eslint/recommended',
-          ],
+          extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
           plugins: ['@typescript-eslint'],
           rules: {
             'no-unused-vars': 'off',
             '@typescript-eslint/explicit-function-return-types': 'off',
-            '@typescript-eslint/no-unused-vars': [
-              'error',
-              { argsIgnorePattern: '^_' },
-            ],
+            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/explicit-module-boundary-types': 'off',
           },
@@ -202,8 +199,9 @@ export function validateApiResponse(data: unknown): ApiResponse {
     packageJson.scripts['lint:fix'] = 'eslint . --ext .ts,.tsx,.js,.jsx --fix';
     packageJson.scripts.format = 'prettier --write .';
     packageJson.scripts['format:check'] = 'prettier --check .';
-    packageJson.scripts.qa = 'npm run format:check && npm run lint';
-    packageJson.scripts['qa:fix'] = 'npm run format && npm run lint:fix';
+    packageJson.scripts['type-check'] = 'tsc --noEmit';
+    packageJson.scripts.qa = 'npm run format:check && npm run lint && npm run type-check';
+    packageJson.scripts['qa:fix'] = 'npm run format && npm run lint:fix && npm run type-check';
 
     // Add Zod if not present
     if (!packageJson.dependencies?.zod && !packageJson.devDependencies?.zod) {
@@ -220,10 +218,7 @@ export function validateApiResponse(data: unknown): ApiResponse {
     packageJson.devDependencies.prettier = '^3.0.0';
     packageJson.devDependencies.eslint = '^8.50.0';
 
-    await fs.writeFile(
-      packageJsonPath,
-      JSON.stringify(packageJson, null, 2),
-    );
+    await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
     this.logger.success('✓ Package.json scripts updated');
     this.logger.info('  Available commands:');
@@ -339,7 +334,7 @@ When you run \`sork init && sork setup-hooks\`:
       this.logger.info('Then: sork setup-hooks to enable security checks');
     } catch (error) {
       this.logger.error(
-        `Setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Setup failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
       throw error;
     }

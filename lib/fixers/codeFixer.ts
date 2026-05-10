@@ -10,93 +10,113 @@ const execFileAsync = promisify(execFile);
 export class CodeFixer {
   private projectPath: string;
   private logger: Logger;
+  private dryRun: boolean;
 
-  constructor(projectPath: string, logger: Logger) {
+  constructor(projectPath: string, logger: Logger, dryRun = false) {
     this.projectPath = projectPath;
     this.logger = logger;
+    this.dryRun = dryRun;
   }
 
   private validateFilePath(filePath: string): void {
     const absolutePath = path.resolve(filePath);
     const absoluteProjectPath = path.resolve(this.projectPath);
-
     if (
       !absolutePath.startsWith(absoluteProjectPath + path.sep) &&
       absolutePath !== absoluteProjectPath
     ) {
-      throw new Error(`Path traversal attack detected: ${filePath}`);
+      throw new Error(`Path traversal blocked: ${filePath}`);
     }
   }
 
-  async applyFix(fix: CodeFix): Promise<void> {
-    try {
-      const filePath = path.join(this.projectPath, fix.file);
+  /**
+   * Apply a single fix. Prefers range-based replacement (precise) over line-based (lossy).
+   */
+  async applyFix(fix: CodeFix, range?: [number, number]): Promise<void> {
+    const filePath = path.join(this.projectPath, fix.file);
+    this.validateFilePath(filePath);
+
+    const content = await fs.readFile(filePath, 'utf-8');
+    const updated = range
+      ? this.replaceByRange(content, range, fix.newCode)
+      : this.replaceByOldCode(content, fix);
+
+    if (updated === content) {
+      this.logger.warn(`No-op fix for ${fix.file}:${fix.line} (oldCode not found, skipping)`);
+      return;
+    }
+
+    if (this.dryRun) {
+      this.logger.info(`[dry-run] Would update ${fix.file}:${fix.line} - ${fix.description}`);
+      return;
+    }
+
+    await fs.writeFile(filePath, updated, 'utf-8');
+    this.logger.success(`Applied fix: ${fix.type} in ${fix.file}:${fix.line}`);
+  }
+
+  /**
+   * Apply multiple fixes to multiple files. Within a file, applies highest-offset first
+   * so earlier offsets remain valid.
+   */
+  async applyMultipleFixes(
+    fixes: Array<{ fix: CodeFix; range?: [number, number] }>
+  ): Promise<void> {
+    const byFile = new Map<string, Array<{ fix: CodeFix; range?: [number, number] }>>();
+    for (const entry of fixes) {
+      const list = byFile.get(entry.fix.file) ?? [];
+      list.push(entry);
+      byFile.set(entry.fix.file, list);
+    }
+
+    for (const [file, entries] of byFile) {
+      const filePath = path.join(this.projectPath, file);
       this.validateFilePath(filePath);
 
       let content = await fs.readFile(filePath, 'utf-8');
-      const lines = content.split('\n');
+      entries.sort((a, b) => (b.range?.[0] ?? 0) - (a.range?.[0] ?? 0));
 
-      if (fix.line > 0 && fix.line <= lines.length) {
-        const lineIndex = fix.line - 1;
-        const newCodeLines = fix.newCode.split('\n');
-
-        lines.splice(lineIndex, 1, ...newCodeLines);
-        content = lines.join('\n');
-
-        await fs.writeFile(filePath, content, 'utf-8');
-        this.logger.success(
-          `Applied fix: ${fix.type} in ${fix.file}:${fix.line} (${newCodeLines.length} line(s))`
-        );
-      } else {
-        this.logger.warn(
-          `Could not apply fix: line ${fix.line} is out of bounds for ${fix.file}`
-        );
+      let applied = 0;
+      for (const { fix, range } of entries) {
+        const next = range
+          ? this.replaceByRange(content, range, fix.newCode)
+          : this.replaceByOldCode(content, fix);
+        if (next !== content) {
+          content = next;
+          applied++;
+        }
       }
-    } catch (error) {
-      throw new Error(`Failed to apply fix: ${error instanceof Error ? error.message : 'Unknown'}`);
+
+      if (this.dryRun) {
+        this.logger.info(`[dry-run] Would apply ${applied}/${entries.length} fix(es) in ${file}`);
+        continue;
+      }
+      await fs.writeFile(filePath, content, 'utf-8');
+      this.logger.success(`Applied ${applied}/${entries.length} fix(es) in ${file}`);
     }
   }
 
-  async applyMultipleFixes(fixes: CodeFix[]): Promise<Map<string, string>> {
-    const fileChanges = new Map<string, string>();
-    const fixesByFile = new Map<string, CodeFix[]>();
-
-    for (const fix of fixes) {
-      if (!fixesByFile.has(fix.file)) {
-        fixesByFile.set(fix.file, []);
-      }
-      fixesByFile.get(fix.file)!.push(fix);
+  private replaceByRange(content: string, range: [number, number], newCode: string): string {
+    const [start, end] = range;
+    if (start < 0 || end > content.length || start >= end) {
+      return content;
     }
+    return content.slice(0, start) + newCode + content.slice(end);
+  }
 
-    for (const [file, fileFixes] of fixesByFile) {
-      try {
-        const filePath = path.join(this.projectPath, file);
-        this.validateFilePath(filePath);
-
-        const content = await fs.readFile(filePath, 'utf-8');
-        fileFixes.sort((a, b) => b.line - a.line);
-
-        const lines = content.split('\n');
-
-        for (const fix of fileFixes) {
-          if (fix.line > 0 && fix.line <= lines.length) {
-            const lineIndex = fix.line - 1;
-            const newCodeLines = fix.newCode.split('\n');
-            lines.splice(lineIndex, 1, ...newCodeLines);
-          }
-        }
-
-        const newContent = lines.join('\n');
-        await fs.writeFile(filePath, newContent, 'utf-8');
-        fileChanges.set(file, newContent);
-
-        this.logger.success(`Applied ${fileFixes.length} fixes in ${file}`);
-      } catch (error) {
-        this.logger.error(`Failed to apply fixes in ${file}: ${error instanceof Error ? error.message : 'Unknown'}`);
-      }
+  /**
+   * Fallback: locate exact oldCode in file and replace.
+   * Less precise than range-based but works when range is unavailable.
+   */
+  private replaceByOldCode(content: string, fix: CodeFix): string {
+    if (!fix.oldCode) {
+      return content;
     }
-
-    return fileChanges;
+    const idx = content.indexOf(fix.oldCode);
+    if (idx === -1) {
+      return content;
+    }
+    return content.slice(0, idx) + fix.newCode + content.slice(idx + fix.oldCode.length);
   }
 
   async formatWithPrettier(filePath: string): Promise<void> {
@@ -106,7 +126,6 @@ export class CodeFixer {
 
       const content = await fs.readFile(fullPath, 'utf-8');
       const prettier = await import('prettier');
-
       const formatted = await prettier.format(content, {
         parser: this.getParser(filePath),
         singleQuote: true,
@@ -114,11 +133,12 @@ export class CodeFixer {
         semi: true,
         tabWidth: 2,
       });
-
       await fs.writeFile(fullPath, formatted, 'utf-8');
-      this.logger.success(`Formatted with Prettier: ${filePath}`);
-    } catch (error) {
-      this.logger.warn(`Failed to format ${filePath}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.debug(`Prettier: ${filePath}`);
+    } catch (err) {
+      this.logger.debug(
+        `Prettier failed for ${filePath}: ${err instanceof Error ? err.message : err}`
+      );
     }
   }
 
@@ -126,24 +146,20 @@ export class CodeFixer {
     try {
       const fullPath = path.join(this.projectPath, filePath);
       this.validateFilePath(fullPath);
-
       await this.formatWithPrettier(filePath);
 
-      const eslintPath = path.join(this.projectPath, 'node_modules', '.bin', 'eslint');
-
+      const eslintBin = path.join(this.projectPath, 'node_modules', '.bin', 'eslint');
       try {
-        await execFileAsync(eslintPath, ['--fix', fullPath]);
-        this.logger.success(`Linted and fixed: ${filePath}`);
-      } catch (error) {
-        const err = error as NodeJS.ErrnoException;
-        if (err.code !== 'ENOENT') {
-          this.logger.debug(`ESLint error: ${error instanceof Error ? error.message : 'Unknown'}`);
-        } else {
-          this.logger.debug(`ESLint not available, skipping lint-fix for ${filePath}`);
+        await execFileAsync(eslintBin, ['--fix', fullPath]);
+        this.logger.debug(`ESLint --fix: ${filePath}`);
+      } catch (err) {
+        const e = err as NodeJS.ErrnoException;
+        if (e.code !== 'ENOENT') {
+          this.logger.debug(`ESLint: ${e.message}`);
         }
       }
-    } catch (error) {
-      this.logger.warn(`Failed to lint/fix ${filePath}: ${error instanceof Error ? error.message : 'Unknown'}`);
+    } catch (err) {
+      this.logger.debug(`lintAndFix failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 

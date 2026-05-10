@@ -8,7 +8,11 @@ export interface Vulnerability {
   type: VulnerabilityType;
   file: string;
   line: number;
+  endLine?: number;
   column?: number;
+  endColumn?: number;
+  /** Character offsets [start, end) into the file. Used by the range-based fixer. */
+  range?: [number, number];
   message: string;
   code?: string;
   severity: SeverityLevel;
@@ -50,10 +54,21 @@ export interface VerificationResult {
 
 export interface AuditLogEntry {
   timestamp: string;
-  action: 'FIXED' | 'FAILED' | 'REGRESSION' | 'SCANNED' | 'DISMISSED';
+  action:
+    | 'FIXED'
+    | 'FAILED'
+    | 'REGRESSION'
+    | 'SCANNED'
+    | 'DISMISSED'
+    | 'COHERE_USED'
+    | 'COHERE_FALLBACK';
   type: VulnerabilityType | string;
   file: string;
   details?: string;
+  /** AI provider used for the action (e.g., 'minimax-m2.7', 'cohere') */
+  provider?: string;
+  /** Token usage for AI calls */
+  tokens?: number;
 }
 
 export interface SorkSession {
@@ -81,8 +96,19 @@ export interface SorkConfig {
 
 export interface SorkOptions {
   projectPath?: string;
-  model?: 'anthropic' | 'local';
   debug?: boolean;
+}
+
+export interface AIProviderConfig {
+  apiKey: string;
+  baseURL: string;
+  model: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+export interface SorkUserConfig {
+  ai?: AIProviderConfig;
 }
 
 export interface ScannerOptions {

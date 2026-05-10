@@ -13,9 +13,7 @@ export class Logger {
 
   info(message: string): void {
     console.log(
-      `${chalk.dim(this.timestamp())} ${chalk.blue('ℹ')} ${chalk.dim(
-        this.context
-      )} ${message}`
+      `${chalk.dim(this.timestamp())} ${chalk.blue('ℹ')} ${chalk.dim(this.context)} ${message}`
     );
   }
 

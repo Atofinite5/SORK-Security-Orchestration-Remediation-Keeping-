@@ -1,7 +1,7 @@
 {
-  "name": "sork-queb",
-  "version": "1.1.4",
-  "description": "SORK - Security Orchestration, Remediation & Keeping. Global AI security brain for Node projects with Prettier, ESLint & Zod validation.",
+  "name": "@atofinite5/sork-cli",
+  "version": "1.2.0",
+  "description": "Sorkcloud CLI — AI-powered security pipeline for Node.js projects. Scans, triages, fixes, verifies, and supports multiple AI agents (Claude, OpenAI, Codex, Gemini, Mistral, Llama). Works with BYOK or sorkcloud.space-managed keys.",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "bin": {
@@ -9,55 +9,67 @@
   },
   "files": [
     "dist/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "type": "module",
   "keywords": [
     "security",
     "orchestration",
     "remediation",
-    "linting",
+    "vulnerability-scanner",
+    "ai",
+    "byok",
     "auto-fix",
     "pre-commit",
     "prettier",
     "eslint",
     "zod",
-    "validation",
-    "code-quality"
+    "code-quality",
+    "devsecops"
   ],
   "author": "Bhargav Kalambhe",
   "license": "MIT",
+  "homepage": "https://github.com/Atofinite5/SORK-Security-Orchestration-Remediation-Keeping-",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Atofinite5/SORK-Security-Orchestration-Remediation-Keeping-.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Atofinite5/SORK-Security-Orchestration-Remediation-Keeping-/issues"
+  },
   "scripts": {
     "build": "tsc",
     "prebuild": "rm -rf dist/",
     "start": "npm run build && node dist/bin/sork.js",
     "dev": "NODE_ENV=development npm run build && node dist/bin/sork.js",
-    "test": "npm run build && node --test dist/tests/**/*.test.js",
+    "test": "npm run build && node --test --test-reporter=spec dist/tests/**/*.test.js",
+    "test:watch": "node --test --watch dist/tests/**/*.test.js",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "type-check": "tsc --noEmit",
-    "global": "npm run build && npm install -g .",
-    "clean": "rm -rf dist/",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "qa": "npm run format:check && npm run lint",
-    "qa:fix": "npm run format && npm run lint:fix"
+    "type-check": "tsc --noEmit",
+    "qa": "npm run format:check && npm run lint && npm run type-check",
+    "qa:fix": "npm run format && npm run lint:fix && npm run type-check",
+    "global": "npm run build && npm install -g .",
+    "clean": "rm -rf dist/",
+    "prepublishOnly": "npm run qa && npm run build"
   },
   "dependencies": {
-    "axios": "^1.7.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@typescript-eslint/typescript-estree": "^6.10.0",
     "chalk": "^5.3.0",
-    "dotenv": "^16.0.0",
+    "fast-glob": "^3.3.2",
+    "ignore": "^5.3.1",
     "minimist": "^1.2.8",
+    "openai": "^4.67.0",
     "zod": "^3.22.0"
-  },
-  "optionalDependencies": {
-    "@anthropic-ai/sdk": "^1.0.0"
   },
   "devDependencies": {
     "@types/minimist": "^1.2.5",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
-    "@typescript-eslint/parser": "^6.10.0",
     "eslint": "^8.50.0",
     "husky": "^8.0.0",
     "lint-staged": "^15.0.0",
