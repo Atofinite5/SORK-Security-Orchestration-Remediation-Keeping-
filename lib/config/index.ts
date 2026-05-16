@@ -81,6 +81,10 @@ export async function resolveAIConfig(): Promise<AIConfig | null> {
  * Save just an API key. Other fields use the defaults.
  * This is the primary onboarding path: `sork config set-key <KEY>`.
  */
+export function isCloudKey(apiKey: string): boolean {
+  return apiKey.startsWith('sork_live_');
+}
+
 export async function setApiKey(apiKey: string): Promise<AIConfig> {
   const trimmed = apiKey.trim();
   if (!trimmed) {
@@ -88,10 +92,11 @@ export async function setApiKey(apiKey: string): Promise<AIConfig> {
   }
 
   const existing = (await loadConfig()).ai;
+  // Cloud keys don't use baseURL/model — those are resolved server-side
   const next: AIConfig = aiSchema.parse({
     apiKey: trimmed,
-    baseURL: existing?.baseURL ?? DEFAULT_BASE_URL,
-    model: existing?.model ?? DEFAULT_MODEL,
+    baseURL: isCloudKey(trimmed) ? DEFAULT_BASE_URL : (existing?.baseURL ?? DEFAULT_BASE_URL),
+    model: isCloudKey(trimmed) ? DEFAULT_MODEL : (existing?.model ?? DEFAULT_MODEL),
     temperature: existing?.temperature ?? 0.2,
     maxTokens: existing?.maxTokens ?? 8192,
   });

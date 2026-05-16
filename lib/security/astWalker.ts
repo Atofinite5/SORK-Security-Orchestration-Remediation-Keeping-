@@ -1,4 +1,5 @@
-import { parse, AST_NODE_TYPES, TSESTree } from '@typescript-eslint/typescript-estree';
+import { parse } from '@typescript-eslint/typescript-estree';
+import { AST_NODE_TYPES, TSESTree } from '@typescript-eslint/types';
 import { Vulnerability, VulnerabilityType, SeverityLevel } from '../types/index.js';
 
 type Node = TSESTree.Node;
