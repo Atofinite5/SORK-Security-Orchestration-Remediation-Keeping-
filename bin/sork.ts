@@ -17,6 +17,8 @@ import {
   KEY_SIGNUP_URL,
   AIConfig,
 } from '../lib/config/index.js';
+import { hookVscode } from '../lib/commands/hook.js';
+import { sendToCloud, sendFolderToCloud } from '../lib/commands/send.js';
 
 const logger = new Logger('SORK');
 
@@ -180,7 +182,9 @@ function showHelp(): void {
   console.log('  fix               Auto-fix detected issues');
   console.log('  status            Show SORK status');
   console.log('  pre-commit        Run pre-commit hooks (auto-called)');
-  console.log('  setup-hooks       Install git pre-commit hooks\n');
+  console.log('  setup-hooks       Install git pre-commit hooks');
+  console.log('  hook vscode       Add SORK tasks to .vscode/tasks.json');
+  console.log('  send [file]       Send a file/folder to SORK Cloud dashboard\n');
 
   console.log(chalk.bold('Options:'));
   console.log('  --path <dir>        Project path (default: current)');
@@ -193,7 +197,10 @@ function showHelp(): void {
   console.log('  sork init-openai-agent');
   console.log('  sork config set-key <YOUR_API_KEY>');
   console.log('  sork scan --path ./my-project');
-  console.log('  sork setup-hooks\n');
+  console.log('  sork setup-hooks');
+  console.log('  sork hook vscode');
+  console.log('  sork send ./src/auth.ts');
+  console.log('  sork send ./src/\n');
   console.log(chalk.dim(`  Get a free API key at: ${KEY_SIGNUP_URL}\n`));
 }
 
@@ -297,6 +304,37 @@ async function main(): Promise<void> {
         logger.info('Checking SORK status...');
         await orchestrator.status();
         break;
+
+      case 'hook': {
+        const sub = argv._[1] ?? '';
+        if (sub === 'vscode') {
+          await hookVscode(projectPath);
+        } else {
+          console.log(chalk.bold('sork hook <target>\n'));
+          console.log('  vscode    Add SORK tasks to .vscode/tasks.json');
+        }
+        break;
+      }
+
+      case 'send': {
+        const target = argv._[1];
+        if (target) {
+          // Check if it's a directory
+          try {
+            const stat = await import('fs').then((m) => m.promises.stat(target));
+            if (stat.isDirectory()) {
+              await sendFolderToCloud(target);
+            } else {
+              await sendToCloud(target);
+            }
+          } catch {
+            await sendToCloud(target);
+          }
+        } else {
+          await sendToCloud();
+        }
+        break;
+      }
 
       default:
         logger.error(`Unknown command: ${command}`);

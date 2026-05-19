@@ -40,6 +40,10 @@ export class RemediationAgent {
 
   async generateFixes(vulnerabilities: Vulnerability[]): Promise<CodeFix[]> {
     this.logger.info(`${this.name} - Generating fixes for ${vulnerabilities.length} finding(s)...`);
+    
+    if (!this.ai) {
+      this.logger.info('No AI configured - using deterministic fallback fixes');
+    }
 
     const fixes: CodeFix[] = [];
     for (const vuln of vulnerabilities) {
@@ -53,16 +57,34 @@ export class RemediationAgent {
   }
 
   private async createFix(vuln: Vulnerability): Promise<CodeFix | null> {
-    if (this.ai) {
+    // If no AI available, use fallback directly
+    if (!this.ai) {
+      return this.fallbackFix(vuln);
+    }
+    
+    // Try AI first with error handling
+    try {
       const aiFix = await this.aiFix(vuln);
       if (aiFix) {
         return aiFix;
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.debug(
+        `AI fix failed for ${vuln.file}:${vuln.line} (${msg}) - using fallback`
+      );
     }
+    
+    // Fall back to deterministic fix
     return this.fallbackFix(vuln);
   }
 
   private async aiFix(vuln: Vulnerability): Promise<CodeFix | null> {
+    // Add 30-second timeout for AI fix generation - fall back if timeout
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('AI fix generation timed out')), 30000)
+    );
+
     try {
       const fileContent = await this.readFile(vuln.file);
       if (!fileContent) {
@@ -72,7 +94,11 @@ export class RemediationAgent {
       const oldCode = this.extractRegion(fileContent, vuln);
       const userPrompt = this.buildPrompt(vuln, fileContent, oldCode);
 
-      const result = await this.ai!.chatJSON(REMEDIATION_SYSTEM_PROMPT, userPrompt, fixSchema);
+      const result = await Promise.race([
+        this.ai!.chatJSON(REMEDIATION_SYSTEM_PROMPT, userPrompt, fixSchema),
+        timeoutPromise,
+      ]);
+      
       const newCode = extractCodeBlock(result.new_code);
 
       return {

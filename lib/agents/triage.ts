@@ -71,7 +71,7 @@ export class TriageAgent {
     return { dismissed, confirmed };
   }
 
-private async decide(vuln: Vulnerability): Promise<{
+  private async decide(vuln: Vulnerability): Promise<{
     dismiss: boolean;
     reason?: string;
     severity?: SeverityLevel;
@@ -112,7 +112,7 @@ private async decide(vuln: Vulnerability): Promise<{
     }
   }
 
-private heuristicDismiss(vuln: Vulnerability): string | null {
+  private heuristicDismiss(vuln: Vulnerability): string | null {
     // Only dismiss actual test definition files (*.test.ts, *.spec.ts)
     // Real vulnerabilities in test fixtures (like tests/fixtures/) should NOT be dismissed
     // because they might indicate real security issues in the test setup

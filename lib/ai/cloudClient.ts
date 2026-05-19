@@ -87,6 +87,9 @@ export class CloudClient {
   }
 
   private post(path: string, body: unknown): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
     return fetch(`${this.cloudUrl}${path}`, {
       method: 'POST',
       headers: {
@@ -94,6 +97,7 @@ export class CloudClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
   }
 }

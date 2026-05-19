@@ -4,13 +4,6 @@ import type { AIProvider } from './client.js';
 
 const DEFAULT_COHERE_URL = 'https://api.cohere.com';
 const DEFAULT_COHERE_MODEL = 'command-a-03-2025';
-const ENCODED_COHERE_KEY =
-  'Y29oZXJlX0ZZTXltZUNobTI5V041T3p2THp2Zm9mT29WN29VVTRHQW5QWlo3NDkyMWFueG4=';
-
-function decodeApiKey(encoded: string): string {
-  const buffer = Buffer.from(encoded, 'base64');
-  return buffer.toString('utf-8');
-}
 
 interface CohereChatResponse {
   message?: {
@@ -33,7 +26,10 @@ export class CohereClient implements AIProvider {
   totalTokens = 0;
 
   constructor(apiKey: string, logger: Logger) {
-    this.apiKey = apiKey || decodeApiKey(ENCODED_COHERE_KEY);
+    if (!apiKey) {
+      throw new Error('Cohere API key is required - set COHERE_API_KEY or SORK_COHERE_API_KEY env var');
+    }
+    this.apiKey = apiKey;
     this.logger = logger;
     this.baseURL = process.env.COHERE_BASE_URL ?? DEFAULT_COHERE_URL;
     this.model = process.env.COHERE_MODEL ?? DEFAULT_COHERE_MODEL;
@@ -82,53 +78,61 @@ export class CohereClient implements AIProvider {
     this.logger.debug(`[COHERE] Calling model: ${this.model}`);
     this.logger.debug(`[COHERE] Request: ${userPrompt.slice(0, 100)}...`);
 
-    const res = await fetch(`${this.baseURL}/v2/chat`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt,
-          },
-          {
-            role: 'user',
-            content: userPrompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 4096,
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-    if (!res.ok) {
-      const err = (await res.json().catch(() => ({ message: res.statusText }))) as {
-        message?: string;
-      };
-      throw new Error(`Cohere API error ${res.status}: ${err.message ?? res.statusText}`);
+    try {
+      const res = await fetch(`${this.baseURL}/v2/chat`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 4096,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({ message: res.statusText }))) as {
+          message?: string;
+        };
+        throw new Error(`Cohere API error ${res.status}: ${err.message ?? res.statusText}`);
+      }
+
+      const json = (await res.json()) as CohereChatResponse;
+      const text = json.message?.content
+        ?.filter((part) => part.type === 'text' || part.text)
+        .map((part) => part.text ?? '')
+        .join('')
+        .trim();
+
+      if (!text) {
+        throw new Error('Empty response from Cohere');
+      }
+
+      this.totalCalls++;
+      this.totalTokens +=
+        (json.meta?.tokens?.input_tokens ?? 0) + (json.meta?.tokens?.output_tokens ?? 0);
+
+      this.logger.debug(`[COHERE] Response: ${text.slice(0, 150)}...`);
+      return text;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const json = (await res.json()) as CohereChatResponse;
-    const text = json.message?.content
-      ?.filter((part) => part.type === 'text' || part.text)
-      .map((part) => part.text ?? '')
-      .join('')
-      .trim();
-
-    if (!text) {
-      throw new Error('Empty response from Cohere');
-    }
-
-    this.totalCalls++;
-    this.totalTokens +=
-      (json.meta?.tokens?.input_tokens ?? 0) + (json.meta?.tokens?.output_tokens ?? 0);
-
-    this.logger.debug(`[COHERE] Response: ${text.slice(0, 150)}...`);
-    return text;
   }
 
   printUsage(): void {
