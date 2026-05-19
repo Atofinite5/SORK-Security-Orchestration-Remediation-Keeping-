@@ -79,16 +79,24 @@ export class AIClient implements AIProvider {
 
   async chatJSON<T>(systemPrompt: string, userPrompt: string, schema: ZodSchema<T>): Promise<T> {
     const attempt = async (extra = ''): Promise<T> => {
-      const response = await this.openai.chat.completions.create({
-        model: this.model,
-        temperature: this.temperature,
-        max_tokens: this.maxTokens,
-        messages: [
-          { role: 'system', content: systemPrompt + extra },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: 'json_object' },
-      });
+      // Add 45-second timeout to prevent hanging on invalid API keys or network issues
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI request timed out (45s) - falling back')), 45000)
+      );
+
+      const response = await Promise.race([
+        this.openai.chat.completions.create({
+          model: this.model,
+          temperature: this.temperature,
+          max_tokens: this.maxTokens,
+          messages: [
+            { role: 'system', content: systemPrompt + extra },
+            { role: 'user', content: userPrompt },
+          ],
+          response_format: { type: 'json_object' },
+        }),
+        timeoutPromise,
+      ]);
 
       this.totalCalls++;
       this.totalTokens += response.usage?.total_tokens ?? 0;
@@ -118,20 +126,29 @@ export class AIClient implements AIProvider {
   }
 
   async chat(systemPrompt: string, userPrompt: string): Promise<string> {
-    const response = await this.openai.chat.completions.create({
-      model: this.model,
-      temperature: this.temperature,
-      max_tokens: this.maxTokens,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    });
+    // Add 45-second timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('AI request timed out (45s)')), 45000)
+    );
+
+    const response = await Promise.race([
+      this.openai.chat.completions.create({
+        model: this.model,
+        temperature: this.temperature,
+        max_tokens: this.maxTokens,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+      timeoutPromise,
+    ]);
 
     this.totalCalls++;
     this.totalTokens += response.usage?.total_tokens ?? 0;
 
-    return response.choices[0]?.message?.content ?? '';
+    const content = response.choices[0]?.message?.content;
+    return content || '';
   }
 
   printUsage(): void {

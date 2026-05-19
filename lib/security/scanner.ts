@@ -77,9 +77,7 @@ export class SecurityScanner {
     }
 
     for (const batch of batches) {
-      const results = await Promise.all(
-        batch.map(async (file) => this.scanSingleFile(file))
-      );
+      const results = await Promise.all(batch.map(async (file) => this.scanSingleFile(file)));
       for (const vulns of results) {
         out.push(...vulns);
       }
@@ -103,7 +101,7 @@ export class SecurityScanner {
       const content = await fs.readFile(file, 'utf-8');
       const relative = path.relative(this.projectPath, file);
 
-// Check cache
+      // Check cache
       const cacheKey = `${relative}:${stat.mtimeMs}`;
       const cached = scanCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
