@@ -19,6 +19,12 @@ import {
 } from '../lib/config/index.js';
 import { hookVscode } from '../lib/commands/hook.js';
 import { sendToCloud, sendFolderToCloud } from '../lib/commands/send.js';
+import { guardProject } from '../lib/commands/guard.js';
+import { reviewFile, reviewStagedFiles } from '../lib/commands/review.js';
+import { runDoctor } from '../lib/commands/doctor.js';
+import { detectLanguage, scanWithLanguagePatterns } from '../lib/scanners/languages.js';
+import { runStabilityChecks } from '../lib/scanners/stability.js';
+import { promises as nodeFs } from 'fs';
 
 const logger = new Logger('SORK');
 
@@ -184,7 +190,13 @@ function showHelp(): void {
   console.log('  pre-commit        Run pre-commit hooks (auto-called)');
   console.log('  setup-hooks       Install git pre-commit hooks');
   console.log('  hook vscode       Add SORK tasks to .vscode/tasks.json');
-  console.log('  send [file]       Send a file/folder to SORK Cloud dashboard\n');
+  console.log('  send [file]       Send a file/folder to SORK Cloud dashboard');
+  console.log('  guard             Watch files in real-time, scan on save');
+  console.log('  review [file]     Review a file or staged diff before committing');
+  console.log('  doctor            Full project health check & language breakdown\n');
+
+  console.log(chalk.bold('Languages supported:'));
+  console.log('  TypeScript · JavaScript · Python · Rust · Go · Java · C/C++ · Ruby · PHP\n');
 
   console.log(chalk.bold('Options:'));
   console.log('  --path <dir>        Project path (default: current)');
@@ -200,7 +212,11 @@ function showHelp(): void {
   console.log('  sork setup-hooks');
   console.log('  sork hook vscode');
   console.log('  sork send ./src/auth.ts');
-  console.log('  sork send ./src/\n');
+  console.log('  sork send ./src/');
+  console.log('  sork guard');
+  console.log('  sork review ./src/auth.ts');
+  console.log('  sork review --staged');
+  console.log('  sork doctor\n');
   console.log(chalk.dim(`  Get a free API key at: ${KEY_SIGNUP_URL}\n`));
 }
 
@@ -278,11 +294,6 @@ async function main(): Promise<void> {
         break;
       }
 
-      case 'scan':
-        logger.info('Running security scan...');
-        await orchestrator.scan();
-        break;
-
       case 'fix':
         logger.info('Auto-fixing issues...');
         await orchestrator.fix();
@@ -304,6 +315,73 @@ async function main(): Promise<void> {
         logger.info('Checking SORK status...');
         await orchestrator.status();
         break;
+
+      case 'guard':
+        await guardProject(projectPath);
+        break;
+
+      case 'review': {
+        const target = argv._[1];
+        const staged = argv.staged as boolean | undefined;
+        if (staged || (!target && !staged)) {
+          await reviewStagedFiles();
+        } else if (target) {
+          const result = await reviewFile(target);
+          const icon = result.verdict === 'BLOCK' ? '🔴' : result.verdict === 'WARN' ? '🟡' : '✅';
+          console.log(`\n  ${icon} ${result.verdict}: ${result.summary}`);
+          for (const issue of result.topIssues) {
+            console.log(`\n  ${chalk.bold(issue.severity)} Line ${issue.line}: ${issue.message}`);
+            console.log(`  → ${issue.plain}`);
+            console.log(`  ${chalk.cyan('Fix:')} ${issue.fixHint}`);
+          }
+          if (result.verdict === 'BLOCK') process.exitCode = 1;
+        }
+        break;
+      }
+
+      case 'doctor':
+        await runDoctor(projectPath);
+        break;
+
+      // Multi-language scan: sork scan --file <path> or sork scan --lang <lang>
+      case 'scan': {
+        const file = argv.file as string | undefined;
+        if (file) {
+          logger.info(`Scanning ${file}...`);
+          try {
+            const source = await nodeFs.readFile(file, 'utf-8');
+            const lang = detectLanguage(file);
+            const vulns = scanWithLanguagePatterns(source, lang);
+            const stability = runStabilityChecks(source, lang, file);
+            const all = [...vulns, ...stability];
+
+            if (all.length === 0) {
+              logger.success(`No issues found in ${file} [${lang}]`);
+              break;
+            }
+
+            console.log(chalk.bold(`\n  ${file} [${lang}] — ${all.length} issue(s)\n`));
+            for (const issue of all) {
+              const id = 'patternId' in issue ? issue.patternId : issue.id;
+              const name = 'name' in issue ? issue.name : issue.category;
+              const sev = issue.severity === 'CRITICAL' ? chalk.bgRed.white(` ${issue.severity} `)
+                : issue.severity === 'HIGH' ? chalk.red(issue.severity)
+                : issue.severity === 'MEDIUM' ? chalk.yellow(issue.severity)
+                : chalk.dim(issue.severity);
+              console.log(`  ${sev} [${id}] ${chalk.bold(name)} — Line ${issue.line}`);
+              console.log(`  ${chalk.dim('→')} ${'plain' in issue ? issue.plain : issue.message}`);
+              console.log(`  ${chalk.cyan('Fix:')} ${issue.fixHint}\n`);
+            }
+          } catch (e) {
+            logger.error(`Cannot read file: ${file}`);
+          }
+          break;
+        }
+        // Fall through to original orchestrator scan
+        logger.info('Running security scan...');
+        await orchestrator.scan();
+        break;
+      }
 
       case 'hook': {
         const sub = argv._[1] ?? '';
