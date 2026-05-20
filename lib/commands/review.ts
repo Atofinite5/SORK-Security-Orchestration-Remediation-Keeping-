@@ -1,16 +1,10 @@
-/**
- * sork review — validate AI-generated diffs before committing
- * Also works as a general "review this file" command.
- */
-
 import { promises as fs } from 'fs';
 import path from 'path';
-import chalk from 'chalk';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { detectLanguage, scanWithLanguagePatterns } from '../scanners/languages.js';
 import { runStabilityChecks } from '../scanners/stability.js';
-
+import { c, sevBadge, rule } from '../utils/palette.js';
 
 const exec = promisify(execFile);
 
@@ -35,119 +29,122 @@ async function getGitDiff(): Promise<string> {
 }
 
 export async function reviewFile(filePath: string): Promise<ReviewResult> {
-  const abs = path.resolve(filePath);
-  const source = await fs.readFile(abs, 'utf-8');
+  const abs  = path.resolve(filePath);
+  const src  = await fs.readFile(abs, 'utf-8');
   const lang = detectLanguage(abs);
-  const rel = path.relative(process.cwd(), abs);
+  const rel  = path.relative(process.cwd(), abs);
 
-  const vulns = scanWithLanguagePatterns(source, lang);
-  const stability = runStabilityChecks(source, lang, rel);
+  const vulns     = scanWithLanguagePatterns(src, lang);
+  const stability = runStabilityChecks(src, lang, rel);
+  const all       = [...vulns, ...stability];
 
-  const criticalOrHigh = [...vulns, ...stability].filter(i =>
-    i.severity === 'CRITICAL' || i.severity === 'HIGH'
+  const criticals   = all.filter(i => i.severity === 'CRITICAL').length;
+  const highs       = all.filter(i => i.severity === 'HIGH').length;
+  const aiArtifacts = stability.filter(i => (i as {aiGenerated?:boolean}).aiGenerated).length;
+
+  const topIssues = all
+    .filter(i => i.severity === 'CRITICAL' || i.severity === 'HIGH')
+    .slice(0, 5)
+    .map(i => ({
+      severity : i.severity,
+      message  : 'name'  in i ? (i as {name:string}).name    : i.category,
+      line     : i.line,
+      fixHint  : i.fixHint,
+      plain    : 'plain' in i ? (i as {plain:string}).plain  : (i as {message:string}).message,
+    }));
+
+  const verdict: 'APPROVE' | 'WARN' | 'BLOCK' =
+    criticals > 0          ? 'BLOCK'   :
+    highs > 0 || aiArtifacts > 0 ? 'WARN' : 'APPROVE';
+
+  const summary =
+    verdict === 'APPROVE' ? `no critical issues  ·  ${rel}` :
+    verdict === 'WARN'    ? `${highs} high${aiArtifacts > 0 ? `, ${aiArtifacts} ai artifacts` : ''}  ·  review before merging` :
+                            `${criticals} critical  ·  do not merge without fixing`;
+
+  return { file: rel, language: lang, vulnCount: vulns.length, stabilityCount: stability.length, aiArtifacts, topIssues, verdict, summary };
+}
+
+function verdictLine(r: ReviewResult): void {
+  const [col, tag] =
+    r.verdict === 'BLOCK'   ? [c.red,   'block  '] :
+    r.verdict === 'WARN'    ? [c.amber, 'warn   '] :
+                              [c.green, 'approve'];
+
+  console.log(
+    '  ' + col(tag) +
+    '  ' + c.white(r.file) +
+    c.faint(`  [${r.language}]`)
   );
-  const aiArtifacts = stability.filter(i => 'aiGenerated' in i && i.aiGenerated).length;
-  const topIssues = criticalOrHigh.slice(0, 5).map(i => ({
-    severity: i.severity,
-    message: 'message' in i ? i.message : (i as { name: string }).name,
-    line: i.line,
-    fixHint: i.fixHint,
-    plain: 'plain' in i ? i.plain : i.message,
-  }));
-
-  const criticals = [...vulns, ...stability].filter(i => i.severity === 'CRITICAL').length;
-  const highs = [...vulns, ...stability].filter(i => i.severity === 'HIGH').length;
-
-  let verdict: 'APPROVE' | 'WARN' | 'BLOCK' = 'APPROVE';
-  if (criticals > 0) verdict = 'BLOCK';
-  else if (highs > 0 || aiArtifacts > 0) verdict = 'WARN';
-
-  const summary = verdict === 'APPROVE'
-    ? `No critical issues found in ${rel}.`
-    : verdict === 'WARN'
-    ? `${highs} HIGH issue(s)${aiArtifacts > 0 ? ` and ${aiArtifacts} AI artifact(s)` : ''} — review before merging.`
-    : `${criticals} CRITICAL issue(s) found — DO NOT merge without fixing.`;
-
-  return {
-    file: rel,
-    language: lang,
-    vulnCount: vulns.length,
-    stabilityCount: stability.length,
-    aiArtifacts,
-    topIssues,
-    verdict,
-    summary,
-  };
+  console.log('  ' + c.faint(' '.repeat(9)) + c.dim(r.summary));
 }
 
 export async function reviewStagedFiles(): Promise<void> {
-  const diff = await getGitDiff();
+  const diff  = await getGitDiff();
   const files = diff.trim().split('\n').filter(Boolean);
 
   if (files.length === 0) {
-    console.log(chalk.dim('  No staged files to review.'));
+    console.log('');
+    console.log('  ' + c.dim('no staged files'));
+    console.log('');
     return;
   }
 
-  console.log(chalk.bold(`\n  SORK Review — ${files.length} staged file(s)\n`));
+  console.log('');
+  console.log(c.faint('  ╭' + '─'.repeat(58) + '╮'));
+  console.log(c.faint('  │') + c.teal('  SORK Review') + c.faint(`  ·  ${files.length} staged file(s)`) + c.faint(' '.repeat(Math.max(0, 34 - String(files.length).length)) + '│'));
+  console.log(c.faint('  ╰' + '─'.repeat(58) + '╯'));
+  console.log('');
 
-  let totalBlocks = 0;
-  let totalWarns = 0;
+  let blocks = 0, warns = 0;
 
   for (const file of files) {
     try {
       const result = await reviewFile(file);
-      const icon = result.verdict === 'BLOCK' ? '🔴' : result.verdict === 'WARN' ? '🟡' : '✅';
-
-      console.log(`  ${icon} ${chalk.bold(result.file)} ${chalk.dim(`[${result.language}]`)}`);
-      console.log(`     ${result.summary}`);
+      verdictLine(result);
 
       for (const issue of result.topIssues) {
-        console.log(`\n     ${chalk.red(issue.severity)} Line ${issue.line}: ${issue.message}`);
-        console.log(`     ${chalk.dim('→')} ${issue.plain}`);
-        console.log(`     ${chalk.cyan('Fix:')} ${issue.fixHint}`);
+        console.log('');
+        console.log('  ' + c.faint(' '.repeat(9)) + sevBadge(issue.severity) + c.faint(`  line ${issue.line}`) + '  ' + c.white(issue.message));
+        console.log('  ' + c.faint(' '.repeat(9)) + c.faint('→  ') + c.label(issue.plain));
+        console.log('  ' + c.faint(' '.repeat(9)) + c.teal('fix  ') + c.dim(issue.fixHint));
       }
 
       if (result.aiArtifacts > 0) {
-        console.log(`\n     ${chalk.yellow('⚡')} ${result.aiArtifacts} AI-generated code pattern(s) detected — verify these are production-ready`);
+        console.log('  ' + c.faint(' '.repeat(9)) + c.purple(`${result.aiArtifacts} ai-generated pattern(s)  ·  verify before merging`));
       }
 
       console.log('');
-
-      if (result.verdict === 'BLOCK') totalBlocks++;
-      if (result.verdict === 'WARN') totalWarns++;
+      if (result.verdict === 'BLOCK') blocks++;
+      if (result.verdict === 'WARN')  warns++;
     } catch {
-      console.log(chalk.dim(`  ⚠ Could not review: ${file}`));
+      console.log('  ' + c.dim(`could not review: ${file}`));
     }
   }
 
-  console.log(chalk.dim('─'.repeat(60)));
-  if (totalBlocks > 0) {
-    console.log(chalk.bgRed.white(`  BLOCKED: ${totalBlocks} file(s) have CRITICAL issues`));
-    console.log(chalk.red('  Fix all CRITICAL issues before committing.\n'));
+  console.log('  ' + rule());
+
+  if (blocks > 0) {
+    console.log('  ' + c.red(`blocked  ·  ${blocks} file(s) with critical issues`));
+    console.log('  ' + c.dim('fix all critical issues before committing'));
     process.exitCode = 1;
-  } else if (totalWarns > 0) {
-    console.log(chalk.yellow(`  WARNING: ${totalWarns} file(s) have HIGH issues or AI artifacts`));
-    console.log(chalk.dim('  Review carefully before merging.\n'));
+  } else if (warns > 0) {
+    console.log('  ' + c.amber(`warning  ·  ${warns} file(s) with high issues or ai artifacts`));
+    console.log('  ' + c.dim('review carefully before merging'));
   } else {
-    console.log(chalk.green('  All staged files passed review ✓\n'));
+    console.log('  ' + c.green('all staged files passed review'));
   }
+  console.log('');
 }
 
 export async function reviewDiff(diffText: string): Promise<void> {
-  // Parse unified diff to extract added lines
   const lines = diffText.split('\n');
   let currentFile = '';
-  
   let lineNum = 0;
-
   const findings: Array<{ file: string; line: number; severity: string; message: string; fixHint: string }> = [];
 
   for (const line of lines) {
-    if (line.startsWith('--- ') || line.startsWith('+++ ')) {
-      if (line.startsWith('+++ b/')) currentFile = line.slice(6);
-      continue;
-    }
+    if (line.startsWith('+++ b/')) { currentFile = line.slice(6); continue; }
     if (line.startsWith('@@')) {
       const m = line.match(/@@ \+(\d+)/);
       lineNum = m ? parseInt(m[1]!) - 1 : 0;
@@ -155,17 +152,17 @@ export async function reviewDiff(diffText: string): Promise<void> {
     }
     if (line.startsWith('+') && !line.startsWith('+++')) {
       lineNum++;
-      const added = line.slice(1);
-      const lang = detectLanguage(currentFile);
-      const matches = scanWithLanguagePatterns(added, lang);
+      const added     = line.slice(1);
+      const lang      = detectLanguage(currentFile);
+      const matches   = scanWithLanguagePatterns(added, lang);
       const stability = runStabilityChecks(added, lang, currentFile);
       for (const m of [...matches, ...stability]) {
         findings.push({
-          file: currentFile,
-          line: lineNum,
-          severity: m.severity,
-          message: 'name' in m ? m.name : ('id' in m ? m.id : 'issue'),
-          fixHint: m.fixHint,
+          file     : currentFile,
+          line     : lineNum,
+          severity : m.severity,
+          message  : 'name' in m ? (m as {name:string}).name : m.category,
+          fixHint  : m.fixHint,
         });
       }
     } else if (!line.startsWith('-')) {
@@ -174,14 +171,18 @@ export async function reviewDiff(diffText: string): Promise<void> {
   }
 
   if (findings.length === 0) {
-    console.log(chalk.green('\n  No issues found in diff ✓\n'));
+    console.log('');
+    console.log('  ' + c.green('no issues found in diff'));
+    console.log('');
     return;
   }
 
-  console.log(chalk.bold(`\n  SORK Diff Review — ${findings.length} issue(s) found\n`));
+  console.log('');
+  console.log('  ' + c.label(`diff review  ·  ${findings.length} issue(s) found`));
+  console.log('  ' + rule());
   for (const f of findings.slice(0, 10)) {
-    const color = f.severity === 'CRITICAL' ? chalk.bgRed.white : f.severity === 'HIGH' ? chalk.red : chalk.yellow;
-    console.log(`  ${color(f.severity)} ${f.file}:${f.line} — ${f.message}`);
-    console.log(`  ${chalk.cyan('Fix:')} ${f.fixHint}\n`);
+    console.log('  ' + sevBadge(f.severity) + '  ' + c.faint(`${f.file}:${f.line}`) + '  ' + c.white(f.message));
+    console.log('  ' + c.teal('fix  ') + c.dim(f.fixHint));
+    console.log('');
   }
 }
