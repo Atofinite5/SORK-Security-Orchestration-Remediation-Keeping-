@@ -376,6 +376,11 @@ export function scanWithLanguagePatterns(source: string, lang: Language): LangMa
   for (const pattern of patterns) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
+
+      // Respect // sork-ignore or // sork-ignore-next-line
+      if (/\/\/\s*sork-ignore/.test(line)) continue;
+      if (i > 0 && /\/\/\s*sork-ignore-next-line/.test(lines[i - 1]!)) continue;
+
       const match = pattern.regex.exec(line);
       if (match) {
         matches.push({

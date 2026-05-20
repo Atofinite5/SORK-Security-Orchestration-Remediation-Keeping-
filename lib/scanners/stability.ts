@@ -204,11 +204,15 @@ export function runStabilityChecks(
   const issues: StabilityIssue[] = [];
 
   for (const pattern of STABILITY_PATTERNS) {
-    // Skip if pattern is language-specific and doesn't match
     if (pattern.langs && !pattern.langs.includes(lang)) continue;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
+
+      // Respect // sork-ignore or // sork-ignore-next-line
+      if (/\/\/\s*sork-ignore/.test(line)) continue;
+      if (i > 0 && /\/\/\s*sork-ignore-next-line/.test(lines[i - 1]!)) continue;
+
       const match = pattern.regex.exec(line);
       if (match) {
         issues.push({
