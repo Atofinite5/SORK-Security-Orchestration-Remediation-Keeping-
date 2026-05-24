@@ -1,7 +1,7 @@
 import { z, ZodSchema } from 'zod';
 import { Logger } from '../utils/logger.js';
 
-const DEFAULT_CLOUD_URL = 'https://sorkcloud.space';
+const DEFAULT_CLOUD_URL = 'https://sork-back.onrender.com';
 
 /**
  * Cloud client — used when the user's API key starts with sork_live_.
