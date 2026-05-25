@@ -12,7 +12,7 @@ import chalk from 'chalk';
 import { randomUUID } from 'crypto';
 import { resolveAIConfig, KEY_SIGNUP_URL } from '../config/index.js';
 
-const API_BASE = process.env.SORK_API_URL ?? 'https://api.sorkcloud.space';
+const API_BASE = process.env.SORK_API_URL ?? 'https://sork-back.onrender.com';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
