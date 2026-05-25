@@ -233,7 +233,7 @@ async function main(): Promise<void> {
     }
 
     if (argv.version) {
-      console.log('SORK v1.3.0');
+      console.log('SORK v1.4.0');
       process.exit(0);
     }
 

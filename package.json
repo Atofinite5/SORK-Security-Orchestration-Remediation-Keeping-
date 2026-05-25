@@ -1,6 +1,6 @@
 {
   "name": "@atofinite5/sork-cli",
-  "version": "1.2.1",
+  "version": "1.4.0",
   "description": "Sorkcloud CLI — AI-powered security pipeline for Node.js projects. Scans, triages, fixes, verifies, and supports multiple AI agents (Claude, OpenAI, Codex, Gemini, Mistral, Llama). Works with BYOK or sorkcloud.space-managed keys.",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
