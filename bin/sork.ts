@@ -22,6 +22,7 @@ import { sendToCloud, sendFolderToCloud } from '../lib/commands/send.js';
 import { guardProject } from '../lib/commands/guard.js';
 import { reviewFile, reviewStagedFiles } from '../lib/commands/review.js';
 import { runDoctor } from '../lib/commands/doctor.js';
+import { startChat } from '../lib/commands/chat.js';
 import { detectLanguage, scanWithLanguagePatterns } from '../lib/scanners/languages.js';
 import { runStabilityChecks } from '../lib/scanners/stability.js';
 import { promises as nodeFs } from 'fs';
@@ -183,6 +184,7 @@ function showHelp(): void {
   console.log('  init-mistral-agent Initialize Mistral agent');
   console.log('  init-llama-agent  Initialize Llama agent');
   console.log('  list-agents       List all initialized agents');
+  console.log(chalk.cyan('  chat              Interactive AI security chat (like Claude Code)'));
   console.log('  config            Manage AI provider config (BYOK)');
   console.log('  scan              Run security scan on project');
   console.log('  fix               Auto-fix detected issues');
@@ -204,6 +206,7 @@ function showHelp(): void {
   console.log('  -h, --help          Show this help\n');
 
   console.log(chalk.bold('Examples:'));
+  console.log('  sork chat');
   console.log('  sork init');
   console.log('  sork init-claude-agent');
   console.log('  sork init-openai-agent');
@@ -254,6 +257,10 @@ async function main(): Promise<void> {
     const orchestrator = new SorkOrchestrator(options);
 
     switch (command) {
+      case 'chat':
+        await startChat();
+        return; // chat handles its own exit
+
       case 'init':
         logger.info('Initializing SORK in project...');
         await orchestrator.initialize();
