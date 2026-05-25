@@ -36,7 +36,9 @@ export async function sendToCloud(filePath?: string): Promise<void> {
   try {
     const raw = await fs.readFile(resolvedPath);
     if (raw.length > MAX_FILE_BYTES) {
-      console.log(chalk.yellow(`⚠  File is large (${(raw.length / 1024).toFixed(1)}KB), truncating to 80KB`));
+      console.log(
+        chalk.yellow(`⚠  File is large (${(raw.length / 1024).toFixed(1)}KB), truncating to 80KB`)
+      );
     }
     content = raw.slice(0, MAX_FILE_BYTES).toString('utf-8');
   } catch {
@@ -70,12 +72,27 @@ export async function sendToCloud(filePath?: string): Promise<void> {
 
 export async function sendFolderToCloud(folderPath: string): Promise<void> {
   const resolvedPath = path.resolve(folderPath);
-  const SUPPORTED = new Set(['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.java', '.cs', '.rb', '.php', '.vue', '.svelte']);
+  const SUPPORTED = new Set([
+    '.ts',
+    '.tsx',
+    '.js',
+    '.jsx',
+    '.py',
+    '.go',
+    '.rs',
+    '.java',
+    '.cs',
+    '.rb',
+    '.php',
+    '.vue',
+    '.svelte',
+  ]);
 
   async function collect(dir: string, files: Array<{ name: string; content: string }> = []) {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist') continue;
+      if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist')
+        continue;
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         await collect(full, files);
@@ -85,9 +102,14 @@ export async function sendFolderToCloud(folderPath: string): Promise<void> {
           try {
             const raw = await fs.readFile(full);
             if (raw.length < 50_000) {
-              files.push({ name: path.relative(resolvedPath, full), content: raw.toString('utf-8') });
+              files.push({
+                name: path.relative(resolvedPath, full),
+                content: raw.toString('utf-8'),
+              });
             }
-          } catch { /* skip unreadable */ }
+          } catch {
+            /* skip unreadable */
+          }
         }
       }
     }
@@ -109,7 +131,10 @@ export async function sendFolderToCloud(folderPath: string): Promise<void> {
 
   openBrowser(`${DASHBOARD_URL}?${params.toString()}`);
 
-  console.log(chalk.green('✓') + ` Sending ${chalk.cyan('#' + path.basename(resolvedPath))} (${files.length} files) to SORK Cloud...`);
+  console.log(
+    chalk.green('✓') +
+      ` Sending ${chalk.cyan('#' + path.basename(resolvedPath))} (${files.length} files) to SORK Cloud...`
+  );
   files.slice(0, 8).forEach((f) => console.log(chalk.dim(`    @${f.name}`)));
   if (files.length > 8) console.log(chalk.dim(`    ... and ${files.length - 8} more`));
 }

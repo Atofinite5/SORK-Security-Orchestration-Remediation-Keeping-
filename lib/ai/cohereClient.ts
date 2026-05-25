@@ -27,7 +27,9 @@ export class CohereClient implements AIProvider {
 
   constructor(apiKey: string, logger: Logger) {
     if (!apiKey) {
-      throw new Error('Cohere API key is required - set COHERE_API_KEY or SORK_COHERE_API_KEY env var');
+      throw new Error(
+        'Cohere API key is required - set COHERE_API_KEY or SORK_COHERE_API_KEY env var'
+      );
     }
     this.apiKey = apiKey;
     this.logger = logger;

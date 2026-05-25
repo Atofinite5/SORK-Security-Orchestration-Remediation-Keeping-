@@ -364,10 +364,14 @@ async function main(): Promise<void> {
             for (const issue of all) {
               const id = 'patternId' in issue ? issue.patternId : issue.id;
               const name = 'name' in issue ? issue.name : issue.category;
-              const sev = issue.severity === 'CRITICAL' ? chalk.bgRed.white(` ${issue.severity} `)
-                : issue.severity === 'HIGH' ? chalk.red(issue.severity)
-                : issue.severity === 'MEDIUM' ? chalk.yellow(issue.severity)
-                : chalk.dim(issue.severity);
+              const sev =
+                issue.severity === 'CRITICAL'
+                  ? chalk.bgRed.white(` ${issue.severity} `)
+                  : issue.severity === 'HIGH'
+                    ? chalk.red(issue.severity)
+                    : issue.severity === 'MEDIUM'
+                      ? chalk.yellow(issue.severity)
+                      : chalk.dim(issue.severity);
               console.log(`  ${sev} [${id}] ${chalk.bold(name)} — Line ${issue.line}`);
               console.log(`  ${chalk.dim('→')} ${'plain' in issue ? issue.plain : issue.message}`);
               console.log(`  ${chalk.cyan('Fix:')} ${issue.fixHint}\n`);

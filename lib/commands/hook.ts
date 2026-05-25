@@ -67,8 +67,24 @@ export async function hookVscode(projectPath: string): Promise<void> {
   console.log(chalk.green('✓') + ' Created ' + chalk.cyan('.vscode/sork-keybindings.txt'));
   console.log('');
   console.log(chalk.bold('In VS Code:'));
-  console.log('  ' + chalk.dim('Cmd+Shift+P') + ' → ' + chalk.cyan('Tasks: Run Task') + ' → ' + chalk.yellow('SORK: Scan This File'));
-  console.log('  ' + chalk.dim('Cmd+Shift+P') + ' → ' + chalk.cyan('Tasks: Run Task') + ' → ' + chalk.yellow('SORK: Open Dashboard'));
+  console.log(
+    '  ' +
+      chalk.dim('Cmd+Shift+P') +
+      ' → ' +
+      chalk.cyan('Tasks: Run Task') +
+      ' → ' +
+      chalk.yellow('SORK: Scan This File')
+  );
+  console.log(
+    '  ' +
+      chalk.dim('Cmd+Shift+P') +
+      ' → ' +
+      chalk.cyan('Tasks: Run Task') +
+      ' → ' +
+      chalk.yellow('SORK: Open Dashboard')
+  );
   console.log('');
-  console.log(chalk.dim('Tip: See .vscode/sork-keybindings.txt to bind a hotkey (e.g. Ctrl+Shift+S)'));
+  console.log(
+    chalk.dim('Tip: See .vscode/sork-keybindings.txt to bind a hotkey (e.g. Ctrl+Shift+S)')
+  );
 }
