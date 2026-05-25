@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import chalk from 'chalk';
 import minimist from 'minimist';
 import { SorkOrchestrator } from '../lib/orchestrator.js';
