@@ -1,11 +1,13 @@
 # SORK - Quick Interview Cheat Sheet
 
 ## The Elevator Pitch (20 seconds)
+
 "SORK is an AI-powered security CLI for Node.js. It scans code for vulnerabilities, uses AI to triage false positives, generates fixes, and verifies the results. Think of it as an automated security engineer that works on your machine."
 
 ---
 
 ## The Pipeline (Visual)
+
 ```
 Raw Code
    ↓
@@ -25,18 +27,20 @@ Report
 ---
 
 ## 6 Vulnerability Types
-| Type | Example | Fix |
-|------|---------|-----|
-| UNSAFE_EVAL | `eval(code)` | Remove or use Function constructor |
-| INSECURE_RANDOM | `Math.random()` | Use `crypto.randomBytes()` |
-| XSS | `.innerHTML = x` | Use `.textContent = x` |
-| HARDCODED_SECRET | `const apiKey = "xxx"` | Use `process.env.API_KEY` |
-| SQL_INJECTION | `` `SELECT * WHERE id=${id}` `` | Use parameterized queries |
-| DEPENDENCY_VULN | `"lodash": "*"` | Pin versions |
+
+| Type             | Example                         | Fix                                |
+| ---------------- | ------------------------------- | ---------------------------------- |
+| UNSAFE_EVAL      | `eval(code)`                    | Remove or use Function constructor |
+| INSECURE_RANDOM  | `Math.random()`                 | Use `crypto.randomBytes()`         |
+| XSS              | `.innerHTML = x`                | Use `.textContent = x`             |
+| HARDCODED_SECRET | `const apiKey = "xxx"`          | Use `process.env.API_KEY`          |
+| SQL_INJECTION    | `` `SELECT * WHERE id=${id}` `` | Use parameterized queries          |
+| DEPENDENCY_VULN  | `"lodash": "*"`                 | Pin versions                       |
 
 ---
 
 ## 3 Agents (Remember: "STK")
+
 - **S (01 TRIAGE)** = Security engineer asking "is this real?" → Dismisses false positives
 - **T (02 REMEDIATION)** = Tech lead suggesting "how to fix?" → Generates safe rewrites
 - **K (03 KEEPER)** = QA verifying "does it work?" → Re-scans + audit log
@@ -44,6 +48,7 @@ Report
 ---
 
 ## Two Ways to Power It
+
 ```
 BYOK                          |  Sorkcloud
 ───────────────────────────   |  ───────────────
@@ -55,6 +60,7 @@ You control cost              |  $0 free, $19/mo Pro
 ---
 
 ## What Happens With No AI Key?
+
 ```
 TRIAGE:       Heuristics only (test files auto-dismissed)
 REMEDIATION:  Deterministic rules (Math.random → crypto, etc.)
@@ -66,6 +72,7 @@ Result: SORK still runs, just less intelligent false-positive filtering
 ---
 
 ## Recent Fixes (Why Your Fix Took 5 Minutes)
+
 1. **Added Timeouts**: `Promise.race([aiCall, timeout])` → No more hanging
 2. **Removed Hardcoded Secret**: Only env vars now
 3. **Better Fallback Logic**: Try AI → catch error → use deterministic fix
@@ -73,6 +80,7 @@ Result: SORK still runs, just less intelligent false-positive filtering
 ---
 
 ## Why AST Analysis Matters
+
 ```
 Regex ("api.*key.*="):
 ├─ Finds: const apiKey = "secret"  ✓
@@ -89,6 +97,7 @@ AST Analysis:
 ---
 
 ## Key Numbers to Mention
+
 - **6** vulnerability types detected
 - **3** AI agents (triage, remediate, verify)
 - **30-45s** timeout per AI request
@@ -98,6 +107,7 @@ AST Analysis:
 ---
 
 ## If Asked About Security
+
 1. **API Keys**: Stored `~/.sork/config.json` with mode 0600
 2. **Data Privacy**: BYOK mode = no cloud, all local
 3. **Audit Trail**: Keeper maintains append-only `.sork/audit.log`
@@ -106,12 +116,13 @@ AST Analysis:
 ---
 
 ## If Asked "Walk Us Through a Fix"
+
 ```
 Input:  const apiKey = "sk-123456"  (line 3)
 
 Triage: "This is in a fixture file showing real vulnerability. Keep it."
 
-Remediate: 
+Remediate:
   Ask AI: "Given this code, write a safe version"
   AI says: "const apiKey = process.env.API_KEY ?? (() => { ... })()"
 
@@ -128,6 +139,7 @@ Output: ✓ 1 verified fix
 ---
 
 ## If Asked About Failures
+
 "Keeper reports 3 failed fixes and 5 regressions. This is honest—we don't hide failures. Failed fixes usually need manual review. Regressions suggest the original code had other issues. This data goes to the developer so they know what to investigate next."
 
 ---
@@ -152,6 +164,7 @@ Output: ✓ 1 verified fix
 ---
 
 ## Files to Know
+
 - `lib/orchestrator.ts` — Main pipeline
 - `lib/agents/{triage,remediation,keeper}.ts` — The 3 agents
 - `lib/security/scanner.ts` — AST walker
@@ -162,6 +175,7 @@ Output: ✓ 1 verified fix
 ---
 
 ## Final Talking Point
+
 "SORK solves a real problem: developers need security scanning that's fast, accurate, and doesn't flood them with false positives. We use AI intelligently—not on every finding, but strategically. And we have fallbacks for every failure mode. It's built to be resilient."
 
 ---

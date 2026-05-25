@@ -36,7 +36,14 @@ const tierIcon = (t: string) =>
   t === 'fast' ? chalk.yellow('⚡') : t === 'deep' ? chalk.magenta('🧠') : chalk.cyan('🛡');
 
 // Severity color helper — used by printReply for inline formatting
-void ((s: string) => s === 'critical' ? chalk.bgRed.white : s === 'high' ? chalk.red : s === 'medium' ? chalk.yellow : chalk.dim);
+void ((s: string) =>
+  s === 'critical'
+    ? chalk.bgRed.white
+    : s === 'high'
+      ? chalk.red
+      : s === 'medium'
+        ? chalk.yellow
+        : chalk.dim);
 
 async function getApiKey(): Promise<string> {
   const ai = await resolveAIConfig();
@@ -49,12 +56,16 @@ async function getApiKey(): Promise<string> {
   return ai.apiKey;
 }
 
-async function readFileForAttachment(filePath: string): Promise<{ name: string; content: string; size: number } | null> {
+async function readFileForAttachment(
+  filePath: string
+): Promise<{ name: string; content: string; size: number } | null> {
   try {
     const resolved = path.resolve(filePath);
     const stat = await fs.stat(resolved);
     if (stat.size > 100_000) {
-      console.log(chalk.yellow(`  ⚠ File too large (${(stat.size / 1024).toFixed(1)}KB), max 100KB`));
+      console.log(
+        chalk.yellow(`  ⚠ File too large (${(stat.size / 1024).toFixed(1)}KB), max 100KB`)
+      );
       return null;
     }
     const content = await fs.readFile(resolved, 'utf-8');
@@ -68,10 +79,15 @@ async function readFileForAttachment(filePath: string): Promise<{ name: string; 
 function printSteps(steps: AgentStep[]): void {
   if (steps.length === 0) return;
   const line = steps
-    .map(s => {
+    .map((s) => {
       const icon = tierIcon(s.tier);
       const dur = s.durationMs ? chalk.dim(` ${s.durationMs}ms`) : '';
-      const st = s.status === 'done' ? chalk.green('✓') : s.status === 'error' ? chalk.red('✗') : chalk.dim('○');
+      const st =
+        s.status === 'done'
+          ? chalk.green('✓')
+          : s.status === 'error'
+            ? chalk.red('✗')
+            : chalk.dim('○');
       return `${icon} ${st} ${chalk.dim(s.agent)}${dur}`;
     })
     .join('  ');
@@ -111,7 +127,11 @@ function printReply(text: string): void {
   }
 }
 
-async function sendMessage(apiKey: string, message: string, attachments: { name: string; content: string; size: number }[] = []): Promise<void> {
+async function sendMessage(
+  apiKey: string,
+  message: string,
+  attachments: { name: string; content: string; size: number }[] = []
+): Promise<void> {
   const payload: Record<string, unknown> = {
     message,
     sessionId,
@@ -125,19 +145,19 @@ async function sendMessage(apiKey: string, message: string, attachments: { name:
     const res = await fetch(`${API_BASE}/api/cli/chat`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+      const err = (await res.json().catch(() => ({ error: res.statusText }))) as { error?: string };
       console.log(chalk.red(`\n  ✗ ${err.error ?? `HTTP ${res.status}`}\n`));
       return;
     }
 
-    const data = await res.json() as {
+    const data = (await res.json()) as {
       reply: string;
       sessionId: string;
       intent?: string;
@@ -162,7 +182,9 @@ async function sendMessage(apiKey: string, message: string, attachments: { name:
 
     // Print intent badge
     if (data.intent && data.intent !== 'general') {
-      console.log(`  ${chalk.bgCyan.black(` ${data.intent.toUpperCase()} `)} ${chalk.dim(`${data.durationMs ?? 0}ms`)}\n`);
+      console.log(
+        `  ${chalk.bgCyan.black(` ${data.intent.toUpperCase()} `)} ${chalk.dim(`${data.durationMs ?? 0}ms`)}\n`
+      );
     }
 
     // Print reply
@@ -189,14 +211,17 @@ async function sendMessage(apiKey: string, message: string, attachments: { name:
 
     // Awaiting fix confirmation
     if (data.awaitingFixConfirmation) {
-      console.log(chalk.yellow(`\n  → Type ${chalk.bold('"fix it"')} for SORK to auto-fix, or ${chalk.bold('"I\'ll fix it"')} to handle yourself`));
+      console.log(
+        chalk.yellow(
+          `\n  → Type ${chalk.bold('"fix it"')} for SORK to auto-fix, or ${chalk.bold('"I\'ll fix it"')} to handle yourself`
+        )
+      );
       pendingFixCode = undefined; // Will be set by triage context on the server
     }
 
     // Store in history
     history.push({ role: 'user', content: message });
     history.push({ role: 'assistant', content: data.reply.slice(0, 500) });
-
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Connection failed';
     console.log(chalk.red(`\n  ✗ ${msg}`));
@@ -226,9 +251,21 @@ export async function startChat(): Promise<void> {
   const apiKey = await getApiKey();
 
   console.log(chalk.cyan('\n  ┌──────────────────────────────────────────────┐'));
-  console.log(chalk.cyan('  │') + chalk.bold('  SORK Interactive Chat                        ') + chalk.cyan('│'));
-  console.log(chalk.cyan('  │') + chalk.dim('  AI Security Engineer — ask anything           ') + chalk.cyan('│'));
-  console.log(chalk.cyan('  │') + chalk.dim('  /help for commands · /exit to quit            ') + chalk.cyan('│'));
+  console.log(
+    chalk.cyan('  │') +
+      chalk.bold('  SORK Interactive Chat                        ') +
+      chalk.cyan('│')
+  );
+  console.log(
+    chalk.cyan('  │') +
+      chalk.dim('  AI Security Engineer — ask anything           ') +
+      chalk.cyan('│')
+  );
+  console.log(
+    chalk.cyan('  │') +
+      chalk.dim('  /help for commands · /exit to quit            ') +
+      chalk.cyan('│')
+  );
   console.log(chalk.cyan('  └──────────────────────────────────────────────┘\n'));
 
   const rl = createInterface({
@@ -292,7 +329,9 @@ export async function startChat(): Promise<void> {
           }
           const file = await readFileForAttachment(arg);
           if (file) {
-            console.log(chalk.dim(`  📎 Attached: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`));
+            console.log(
+              chalk.dim(`  📎 Attached: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`)
+            );
             console.log(chalk.dim('  Now type your question about this file.\n'));
             // Store for next message
             (rl as any).__pendingAttachments = [file];
@@ -308,7 +347,11 @@ export async function startChat(): Promise<void> {
           const file = await readFileForAttachment(arg);
           if (file) {
             console.log(chalk.dim(`  🔍 Scanning ${file.name}...\n`));
-            await sendMessage(apiKey, `Scan this file for security vulnerabilities:\n\nAttached files: ${file.name}`, [file]);
+            await sendMessage(
+              apiKey,
+              `Scan this file for security vulnerabilities:\n\nAttached files: ${file.name}`,
+              [file]
+            );
           }
           break;
         }
@@ -321,7 +364,11 @@ export async function startChat(): Promise<void> {
           const file = await readFileForAttachment(arg);
           if (file) {
             console.log(chalk.dim(`  🔧 Scanning + fixing ${file.name}...\n`));
-            await sendMessage(apiKey, `Fix all security vulnerabilities in this file:\n\nAttached files: ${file.name}`, [file]);
+            await sendMessage(
+              apiKey,
+              `Fix all security vulnerabilities in this file:\n\nAttached files: ${file.name}`,
+              [file]
+            );
           }
           break;
         }
@@ -330,9 +377,9 @@ export async function startChat(): Promise<void> {
           if (!arg) {
             try {
               const res = await fetch(`${API_BASE}/api/cli/chat/model`, {
-                headers: { 'Authorization': `Bearer ${apiKey}` },
+                headers: { Authorization: `Bearer ${apiKey}` },
               });
-              const data = await res.json() as { model: string };
+              const data = (await res.json()) as { model: string };
               console.log(chalk.dim(`  Current model: ${chalk.cyan(data.model ?? 'default')}\n`));
             } catch {
               console.log(chalk.red('  ✗ Failed to fetch model info\n'));
@@ -358,7 +405,9 @@ export async function startChat(): Promise<void> {
             console.log(chalk.yellow('  No test to save. Run /fix first.\n'));
             break;
           }
-          const testPath = arg || `sork-security-test.${lastGeneratedTest.framework === 'pytest' ? 'py' : 'test.ts'}`;
+          const testPath =
+            arg ||
+            `sork-security-test.${lastGeneratedTest.framework === 'pytest' ? 'py' : 'test.ts'}`;
           try {
             await fs.writeFile(testPath, lastGeneratedTest.testCode, 'utf-8');
             console.log(chalk.green(`  ✓ Test saved to ${testPath}\n`));

@@ -4,8 +4,9 @@
 
 Scans your code for vulnerabilities across 9 languages, triages false positives, generates fixes, verifies the result, generates regression tests, and learns from your edits.
 
-  Security Orchestration, Remediation & Keeping
-```
+Security Orchestration, Remediation & Keeping
+
+````
 
 - **Sorkcloud** — paste a managed `sork_live_*` key from [sorkcloud.space](https://sorkcloud.space). 14 free requests, then $19/mo Pro or $28/mo Pro Plus.
 - **BYOK** — bring your own API key. Your key, your credits, all calls go directly from your machine to the provider.
@@ -19,7 +20,7 @@ Scans your code for vulnerabilities across 9 languages, triages false positives,
 ```bash
 npm install -g @atofinite5/sork-cli
 sork --version  # SORK v1.3.0
-```
+````
 
 Requires **Node.js ≥ 18**.
 
@@ -27,7 +28,7 @@ Requires **Node.js ≥ 18**.
 
 ## Quick start (Sorkcloud -- easiest)
 
-```bash
+````bash
 # 1. Sign up at https://sorkcloud.space -> /dashboard -> "Issue new key"
 # 2. Copy the sork_live_xxx key
 
@@ -45,7 +46,7 @@ sork config set model <model-name>
 sork init
 sork scan
 sork fix
-```
+````
 
 The SORK Cloud engine handles all the AI model routing server-side. You never need to bring your own Groq, NVIDIA, OpenAI, or Cohere keys to the CLI — just paste a `sork_live_*` key and everything works.
 
@@ -55,17 +56,17 @@ The SORK Cloud engine handles all the AI model routing server-side. You never ne
 
 ## Languages supported
 
-| Language | Scanner | Fix | Guard |
-|---|---|---|---|
-| TypeScript / JavaScript | AST + patterns | AI + deterministic | Yes |
-| Python | Pattern-based | AI | Yes |
-| Rust | Pattern-based | AI | Yes |
-| Go | Pattern-based | AI | Yes |
-| Java | Pattern-based | AI | Yes |
-| C / C++ | Pattern-based | AI | Yes |
-| Ruby | Pattern-based | AI | Yes |
-| PHP | Pattern-based | AI | Yes |
-| C# | Pattern-based | AI | Yes |
+| Language                | Scanner        | Fix                | Guard |
+| ----------------------- | -------------- | ------------------ | ----- |
+| TypeScript / JavaScript | AST + patterns | AI + deterministic | Yes   |
+| Python                  | Pattern-based  | AI                 | Yes   |
+| Rust                    | Pattern-based  | AI                 | Yes   |
+| Go                      | Pattern-based  | AI                 | Yes   |
+| Java                    | Pattern-based  | AI                 | Yes   |
+| C / C++                 | Pattern-based  | AI                 | Yes   |
+| Ruby                    | Pattern-based  | AI                 | Yes   |
+| PHP                     | Pattern-based  | AI                 | Yes   |
+| C#                      | Pattern-based  | AI                 | Yes   |
 
 Language is auto-detected from file extension. Use `sork doctor` to see the full language breakdown of your project.
 
@@ -75,18 +76,18 @@ Language is auto-detected from file extension. Use `sork doctor` to see the full
 
 The scanner walks your code AST (TypeScript/JavaScript) or runs pattern-based detection (all other languages):
 
-| Type | Detects |
-|---|---|
-| `UNSAFE_EVAL` | `eval(...)`, `new Function(...)`, `setTimeout("...")`, `setInterval("...")` |
-| `INSECURE_RANDOM` | `Math.random()` used in security contexts |
-| `XSS` | `.innerHTML` / `.outerHTML` assignment, JSX `dangerouslySetInnerHTML` |
-| `HARDCODED_SECRET` | String literals assigned to `apiKey`, `password`, `token`, `privateKey`, etc. |
-| `SQL_INJECTION` | SQL keywords in template literals with interpolation, or string-concat |
-| `DEPENDENCY_VULN` | Wildcard or `latest` versions in `package.json` |
-| `COMMAND_INJECTION` | `exec()`, `spawn()` with unsanitized user input |
-| `PATH_TRAVERSAL` | Unchecked path joins with user input |
-| `SSRF` | Fetch/HTTP calls with user-controlled URLs |
-| `CRYPTO_WEAK` | Weak hash algorithms (MD5, SHA1 for security) |
+| Type                | Detects                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `UNSAFE_EVAL`       | `eval(...)`, `new Function(...)`, `setTimeout("...")`, `setInterval("...")`   |
+| `INSECURE_RANDOM`   | `Math.random()` used in security contexts                                     |
+| `XSS`               | `.innerHTML` / `.outerHTML` assignment, JSX `dangerouslySetInnerHTML`         |
+| `HARDCODED_SECRET`  | String literals assigned to `apiKey`, `password`, `token`, `privateKey`, etc. |
+| `SQL_INJECTION`     | SQL keywords in template literals with interpolation, or string-concat        |
+| `DEPENDENCY_VULN`   | Wildcard or `latest` versions in `package.json`                               |
+| `COMMAND_INJECTION` | `exec()`, `spawn()` with unsanitized user input                               |
+| `PATH_TRAVERSAL`    | Unchecked path joins with user input                                          |
+| `SSRF`              | Fetch/HTTP calls with user-controlled URLs                                    |
+| `CRYPTO_WEAK`       | Weak hash algorithms (MD5, SHA1 for security)                                 |
 
 Plus language-specific patterns for Python (`pickle.loads`, `yaml.load`), Rust (`unsafe` blocks), Go (`fmt.Sprintf` in SQL), Java (deserialization), and more.
 
@@ -222,6 +223,7 @@ jobs:
 ```
 
 The action:
+
 1. Collects the PR diff
 2. Sends it to SORK for AI-powered triage
 3. Posts a structured PR comment with severity table
@@ -312,6 +314,7 @@ sork doctor
 ```
 
 Full project health check:
+
 - Language breakdown with file counts and line counts
 - Dependency audit
 - Configuration validation
