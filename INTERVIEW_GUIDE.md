@@ -5,7 +5,6 @@
 **SORK** = **S**ecurity **O**rchestration, **R**emediation & **K**eeping
 
 It's an **AI-powered security CLI** for Node.js/TypeScript projects that:
-
 - **Scans** code for 6 common vulnerability types using AST analysis
 - **Triages** findings with AI to eliminate false positives
 - **Remediates** (auto-fixes) confirmed issues with safe code rewrites
@@ -72,11 +71,9 @@ Output: Scan Summary + Audit Trail
 ## 3. Each Agent Explained
 
 ### Agent 01: TRIAGE (What it does)
-
 **Purpose**: Reduce false positives before AI spending tokens on them
 
 **Input**: Raw vulnerabilities from scanner
-
 ```javascript
 {
   type: 'HARDCODED_SECRET',
@@ -88,7 +85,6 @@ Output: Scan Summary + Audit Trail
 ```
 
 **Process**:
-
 1. Check heuristics first (fast):
    - If filename contains `.test.` or `.spec.` → likely false positive
    - If file path contains `vulnerable`, `bad`, `insecure` → likely intentional
@@ -104,11 +100,9 @@ Output: Scan Summary + Audit Trail
 ---
 
 ### Agent 02: REMEDIATION (What it does)
-
 **Purpose**: Generate safe code rewrites
 
 **Input**: Confirmed vulnerabilities
-
 ```javascript
 {
   type: 'SQL_INJECTION',
@@ -119,7 +113,6 @@ Output: Scan Summary + Audit Trail
 ```
 
 **Process**:
-
 1. Extract vulnerable region (±10 lines of context)
 2. Ask AI: "Here's the vulnerable code. Give me a safe replacement."
    - System prompt: Instructions on preserving identifiers, imports, style
@@ -132,7 +125,6 @@ Output: Scan Summary + Audit Trail
    - Others: Insert `// SORK TODO:` comment for manual review
 
 **Output**: Array of CodeFix objects
-
 ```javascript
 {
   type: 'SQL_INJECTION',
@@ -149,13 +141,11 @@ Output: Scan Summary + Audit Trail
 ---
 
 ### Agent 03: KEEPER (What it does)
-
 **Purpose**: Verify fixes work and catch regressions
 
 **Input**: Applied fixes + original vulnerabilities
 
 **Process**:
-
 1. Re-scan all modified files
 2. For each fix, check:
    - Is the original vulnerability gone?
@@ -167,7 +157,6 @@ Output: Scan Summary + Audit Trail
    ```
 
 **Output**: Verification report
-
 ```javascript
 {
   verified: [fix1, fix2, ...],      // Fixes that worked
@@ -182,14 +171,14 @@ Output: Scan Summary + Audit Trail
 
 ## 4. Vulnerability Types Detected
 
-| Type               | What It Catches                                  | Example                                    |
-| ------------------ | ------------------------------------------------ | ------------------------------------------ |
-| `UNSAFE_EVAL`      | `eval()`, `new Function()`, `setTimeout("code")` | `eval(userInput)`                          |
-| `INSECURE_RANDOM`  | `Math.random()` for security                     | `const token = Math.random().toString()`   |
-| `XSS`              | `.innerHTML`, `.outerHTML` assignment            | `el.innerHTML = userInput`                 |
-| `HARDCODED_SECRET` | Secrets in variable names                        | `const apiKey = "sk-12345"`                |
-| `SQL_INJECTION`    | Template literals + concat with variables        | `` `SELECT * FROM users WHERE id=${id}` `` |
-| `DEPENDENCY_VULN`  | Wildcard versions in package.json                | `"lodash": "*"`                            |
+| Type | What It Catches | Example |
+|------|-----------------|---------|
+| `UNSAFE_EVAL` | `eval()`, `new Function()`, `setTimeout("code")` | `eval(userInput)` |
+| `INSECURE_RANDOM` | `Math.random()` for security | `const token = Math.random().toString()` |
+| `XSS` | `.innerHTML`, `.outerHTML` assignment | `el.innerHTML = userInput` |
+| `HARDCODED_SECRET` | Secrets in variable names | `const apiKey = "sk-12345"` |
+| `SQL_INJECTION` | Template literals + concat with variables | `` `SELECT * FROM users WHERE id=${id}` `` |
+| `DEPENDENCY_VULN` | Wildcard versions in package.json | `"lodash": "*"` |
 
 **Interview Point**: "We use AST analysis, not regex. This means we don't flag secrets inside comments or test data—only real code."
 
@@ -200,12 +189,10 @@ Output: Scan Summary + Audit Trail
 ### Two Deployment Modes
 
 **Mode 1: BYOK (Bring Your Own Key)**
-
 ```bash
 sork config set-key nvapi-xxxxx    # NVIDIA NIM
 sork config set model minimaxai/minimax-m2.7
 ```
-
 - User provides API key
 - SORK calls AI provider directly from their machine
 - No server in between
@@ -213,11 +200,9 @@ sork config set model minimaxai/minimax-m2.7
 - Works offline if needed (fallback mode)
 
 **Mode 2: Sorkcloud (Managed)**
-
 ```bash
 sork config set-key sork_live_xxxxx
 ```
-
 - User signs up at sorkcloud.space
 - Gets managed key that routes to SORK Cloud
 - 14 free requests, then subscription
@@ -225,9 +210,7 @@ sork config set-key sork_live_xxxxx
 - Audit trail on cloud side
 
 ### What Happens With No AI Key
-
 If no API key is set, SORK automatically falls back to:
-
 - **Triage**: Filename heuristics only (test files auto-dismissed)
 - **Remediation**: Deterministic rules for common vulnerabilities
 - **Keeper**: Re-scan still works (no AI needed)
@@ -239,11 +222,9 @@ If no API key is set, SORK automatically falls back to:
 ## 6. Recent Fixes We Made (v1.2.1)
 
 ### Problem 1: Fix Command Hung
-
 **Symptom**: `sork fix` never completed
 **Root Cause**: AI requests had no timeout. Invalid API keys caused infinite hangs.
 **Fix**: Added 30-45 second timeouts with `Promise.race()` pattern
-
 ```typescript
 const timeoutPromise = new Promise<never>((_, reject) =>
   setTimeout(() => reject(new Error('AI request timed out')), 45000)
@@ -256,24 +237,20 @@ await Promise.race([
 ```
 
 ### Problem 2: Hardcoded Secret Leak
-
 **Symptom**: Base64-encoded Cohere API key in source
 **Fix**: Removed hardcoded key, now only accepts env vars
-
 ```bash
 COHERE_API_KEY=xxxx sork scan    # Now required
 ```
 
 ### Problem 3: Remediation Didn't Fall Back Gracefully
-
 **Symptom**: If AI failed, remediation crashed instead of using fallback
 **Fix**: Added try-catch with explicit fallback logic
-
 ```typescript
 try {
-  return await this.aiFix(vuln); // Try AI
+  return await this.aiFix(vuln);  // Try AI
 } catch (err) {
-  return this.fallbackFix(vuln); // Fall back
+  return this.fallbackFix(vuln);  // Fall back
 }
 ```
 
@@ -284,19 +261,16 @@ try {
 ## 7. Key Technical Decisions
 
 ### Why AST Analysis?
-
 - **Regex too loose**: Would flag secrets in comments/strings
 - **AST is precise**: Only flags real code nodes
 - **Offsets matter**: Character-level precision allows surgical fixes
 
 ### Why Multiple AI Calls?
-
 - **Triage**: Filter noise first (saves token budget)
 - **Remediation**: Each fix is a separate call (parallelizable)
 - **Keeper**: No AI (just re-scan)
 
 ### Why Fallbacks?
-
 - **Resilience**: Works when API is down
 - **Cost control**: Users choose their AI spending
 - **Privacy**: Deterministic fallback doesn't leak code to cloud
@@ -306,23 +280,18 @@ try {
 ## 8. Interview Talking Points
 
 ### "Tell us about SORK"
-
 "SORK is a three-stage security pipeline for Node.js. It scans code using AST analysis, filters false positives with AI, auto-fixes vulnerabilities, and verifies the fixes didn't break anything. The key innovation is the staged agent architecture—each agent is specialized and can operate independently or together."
 
 ### "What's the hardest part?"
-
-"Balancing AI cost with accuracy. If you ask AI to triage _and_ fix, you double your token spend. So we built heuristics to filter findings first, then only spend AI tokens on uncertain cases. We also added timeouts and fallbacks so the tool never hangs waiting for AI."
+"Balancing AI cost with accuracy. If you ask AI to triage *and* fix, you double your token spend. So we built heuristics to filter findings first, then only spend AI tokens on uncertain cases. We also added timeouts and fallbacks so the tool never hangs waiting for AI."
 
 ### "How do you handle false positives?"
-
 "Three layers: filename heuristics (test files auto-dismissed), context-aware AI triage (asks if it's real given surrounding code), and deterministic confirmation (Keeper re-scans to verify). For new users without an AI key, we still work—just with heuristics alone."
 
 ### "What about security?"
-
 "API keys never leave the user's machine in BYOK mode. Config is stored with mode 0600 (read-only). Secrets are never logged. For SORK Cloud mode, keys are managed server-side with standard auth. All vulnerability data is isolated per user."
 
 ### "Walk us through a fix"
-
 1. Scanner finds `const apiKey = "sk-123"` at line 10
 2. Triage asks: "This looks real, not a test mock. Keep it."
 3. Remediation asks: "Rewrite this to use env var instead."
@@ -331,25 +300,24 @@ try {
 6. Audit log records the fix.
 
 ### "Why Zod for schemas?"
-
 "Type safety for AI responses. We tell the AI schema upfront, then validate with Zod before using the response. If AI returns invalid JSON, we retry with a stricter prompt. This prevents crashes from malformed AI output."
 
 ---
 
 ## 9. Architecture Files (Quick Reference)
 
-| File                        | Purpose                                                            |
-| --------------------------- | ------------------------------------------------------------------ |
-| `lib/orchestrator.ts`       | Main pipeline coordinator—calls scan → triage → remediate → verify |
-| `lib/agents/triage.ts`      | Agent 01—decides real vs false positive                            |
-| `lib/agents/remediation.ts` | Agent 02—generates fixes                                           |
-| `lib/agents/keeper.ts`      | Agent 03—verifies + audit log                                      |
-| `lib/security/scanner.ts`   | AST walker—finds vulnerabilities                                   |
-| `lib/fixers/codeFixer.ts`   | Applies fixes to files + prettier/eslint                           |
-| `lib/ai/client.ts`          | OpenAI-compatible client (BYOK)                                    |
-| `lib/ai/cloudClient.ts`     | Sorkcloud integration                                              |
-| `lib/config/index.ts`       | Config loading (file + env vars)                                   |
-| `lib/types/index.ts`        | TypeScript types for all data                                      |
+| File | Purpose |
+|------|---------|
+| `lib/orchestrator.ts` | Main pipeline coordinator—calls scan → triage → remediate → verify |
+| `lib/agents/triage.ts` | Agent 01—decides real vs false positive |
+| `lib/agents/remediation.ts` | Agent 02—generates fixes |
+| `lib/agents/keeper.ts` | Agent 03—verifies + audit log |
+| `lib/security/scanner.ts` | AST walker—finds vulnerabilities |
+| `lib/fixers/codeFixer.ts` | Applies fixes to files + prettier/eslint |
+| `lib/ai/client.ts` | OpenAI-compatible client (BYOK) |
+| `lib/ai/cloudClient.ts` | Sorkcloud integration |
+| `lib/config/index.ts` | Config loading (file + env vars) |
+| `lib/types/index.ts` | TypeScript types for all data |
 
 ---
 

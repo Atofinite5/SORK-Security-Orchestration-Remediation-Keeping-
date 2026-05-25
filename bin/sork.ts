@@ -25,13 +25,10 @@ import { sendToCloud, sendFolderToCloud } from '../lib/commands/send.js';
 import { guardProject } from '../lib/commands/guard.js';
 import { reviewFile, reviewStagedFiles } from '../lib/commands/review.js';
 import { runDoctor } from '../lib/commands/doctor.js';
+import { startChat } from '../lib/commands/chat.js';
 import { detectLanguage, scanWithLanguagePatterns } from '../lib/scanners/languages.js';
 import { runStabilityChecks } from '../lib/scanners/stability.js';
 import { promises as nodeFs } from 'fs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const pkg = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8'));
 
 const logger = new Logger('SORK');
 
@@ -190,7 +187,8 @@ function showHelp(): void {
   console.log('  init-mistral-agent Initialize Mistral agent');
   console.log('  init-llama-agent  Initialize Llama agent');
   console.log('  list-agents       List all initialized agents');
-  console.log('  config            Manage license key & local config');
+  console.log(chalk.cyan('  chat              Interactive AI security chat (like Claude Code)'));
+  console.log('  config            Manage AI provider config (BYOK)');
   console.log('  scan              Run security scan on project');
   console.log('  fix               Auto-fix detected issues');
   console.log('  status            Show SORK status');
@@ -211,6 +209,7 @@ function showHelp(): void {
   console.log('  -h, --help          Show this help\n');
 
   console.log(chalk.bold('Examples:'));
+  console.log('  sork chat');
   console.log('  sork init');
   console.log('  sork init-claude-agent');
   console.log('  sork init-openai-agent');
@@ -237,7 +236,7 @@ async function main(): Promise<void> {
     }
 
     if (argv.version) {
-      console.log(`SORK v${pkg.version}`);
+      console.log('SORK v1.4.0');
       process.exit(0);
     }
 
@@ -261,6 +260,10 @@ async function main(): Promise<void> {
     const orchestrator = new SorkOrchestrator(options);
 
     switch (command) {
+      case 'chat':
+        await startChat();
+        return; // chat handles its own exit
+
       case 'init':
         logger.info('Initializing SORK in project...');
         await orchestrator.initialize();
@@ -371,14 +374,10 @@ async function main(): Promise<void> {
             for (const issue of all) {
               const id = 'patternId' in issue ? issue.patternId : issue.id;
               const name = 'name' in issue ? issue.name : issue.category;
-              const sev =
-                issue.severity === 'CRITICAL'
-                  ? chalk.bgRed.white(` ${issue.severity} `)
-                  : issue.severity === 'HIGH'
-                    ? chalk.red(issue.severity)
-                    : issue.severity === 'MEDIUM'
-                      ? chalk.yellow(issue.severity)
-                      : chalk.dim(issue.severity);
+              const sev = issue.severity === 'CRITICAL' ? chalk.bgRed.white(` ${issue.severity} `)
+                : issue.severity === 'HIGH' ? chalk.red(issue.severity)
+                : issue.severity === 'MEDIUM' ? chalk.yellow(issue.severity)
+                : chalk.dim(issue.severity);
               console.log(`  ${sev} [${id}] ${chalk.bold(name)} — Line ${issue.line}`);
               console.log(`  ${chalk.dim('→')} ${'plain' in issue ? issue.plain : issue.message}`);
               console.log(`  ${chalk.cyan('Fix:')} ${issue.fixHint}\n`);

@@ -1,35 +1,16 @@
 # @atofinite5/sork-cli
 
-**The official CLI for [SORK Cloud](https://sorkcloud.space)** — your AI DevSecOps Engineer that scans, fixes, verifies, and ships secure code.
+**The official CLI for [Sorkcloud](https://sorkcloud.space)** — an AI-powered security pipeline (Security Orchestration, Remediation & Keeping) for modern codebases.
 
-```
-  ███████╗  ██████╗  ██████╗  ██╗  ██╗
-  ██╔════╝ ██╔═══██╗ ██╔══██╗ ██║ ██╔╝
-  ███████╗ ██║   ██║ ██████╔╝ █████╔╝
-  ╚════██║ ██║   ██║ ██╔══██╗ ██╔═██╗
-  ███████║ ╚██████╔╝ ██║  ██║ ██║  ██╗
-  ╚══════╝  ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝
+Scans your code for vulnerabilities across 9 languages, triages false positives, generates fixes, verifies the result, generates regression tests, and learns from your edits.
 
   Security Orchestration, Remediation & Keeping
 ```
 
-[![npm version](https://img.shields.io/npm/v/@atofinite5/sork-cli.svg)](https://www.npmjs.com/package/@atofinite5/sork-cli)
-[![License: MIT](https://img.shields.io/npm/l/@atofinite5/sork-cli.svg)](LICENSE)
-[![Node](https://img.shields.io/node/v/@atofinite5/sork-cli.svg)](https://nodejs.org)
+- **Sorkcloud** — paste a managed `sork_live_*` key from [sorkcloud.space](https://sorkcloud.space). 14 free requests, then $19/mo Pro or $28/mo Pro Plus.
+- **BYOK** — bring your own API key. Your key, your credits, all calls go directly from your machine to the provider.
 
-Scan repositories · Detect vulnerabilities · Generate fixes · Verify patches · Ship secure code.
-**All from your terminal, all powered by your own AI keys.**
-
----
-
-## Why SORK
-
-| Without SORK                                      | With SORK                                                     |
-| ------------------------------------------------- | ------------------------------------------------------------- |
-| Manual code reviews catch ~30% of vulnerabilities | AI catches CWE-89, CWE-22, CWE-79, CWE-476 + 40 more patterns |
-| Days between bug → fix → verify                   | Seconds — scan, fix, verify in one pipeline                   |
-| Locked into one AI vendor                         | BYOK — bring Groq, NVIDIA, Cohere, OpenAI, any key            |
-| Generic fixes that break logic                    | Memory-aware fixes consistent with your codebase              |
+> Current status: **v1.3.0**. Multi-language scanner, AI-driven agents (BYOK or Sorkcloud), interactive chat REPL, guard mode, doctor diagnostics, deterministic fallbacks.
 
 ---
 
@@ -44,19 +25,25 @@ Requires **Node.js ≥ 18**.
 
 ---
 
-## Quick Start
-
-**One license key. That's all you need.**
+## Quick start (Sorkcloud -- easiest)
 
 ```bash
-# 1. Sign up at https://sorkcloud.space → Dashboard → API Keys → Issue
-# 2. Copy your sork_live_* license key
-sork config set-key sork_live_xxxxxxxxxxxx
+# 1. Sign up at https://sorkcloud.space -> /dashboard -> "Issue new key"
+# 2. Copy the sork_live_xxx key
 
 # 3. Scan
 sork scan
 
-# 4. Apply AI-generated fixes
+You get 14 AI-powered requests free. Upgrade to Pro for unlimited.
+
+## Quick start (BYOK -- bring your own key)
+
+```bash
+sork config set-key <YOUR_API_KEY>
+sork config set model <model-name>
+
+sork init
+sork scan
 sork fix
 ```
 
@@ -66,195 +53,213 @@ The SORK Cloud engine handles all the AI model routing server-side. You never ne
 
 ---
 
-## System Architecture
+## Languages supported
 
-### Three-tier model routing
+| Language | Scanner | Fix | Guard |
+|---|---|---|---|
+| TypeScript / JavaScript | AST + patterns | AI + deterministic | Yes |
+| Python | Pattern-based | AI | Yes |
+| Rust | Pattern-based | AI | Yes |
+| Go | Pattern-based | AI | Yes |
+| Java | Pattern-based | AI | Yes |
+| C / C++ | Pattern-based | AI | Yes |
+| Ruby | Pattern-based | AI | Yes |
+| PHP | Pattern-based | AI | Yes |
+| C# | Pattern-based | AI | Yes |
 
-SORK uses a smart router that picks the right AI tier for each task:
+Language is auto-detected from file extension. Use `sork doctor` to see the full language breakdown of your project.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                            sork-cli                                 │
-│                                                                     │
-│   sork scan   sork fix   sork verify   sork guard   sork doctor     │
-│                                                                     │
-└─────────────────────────────┬───────────────────────────────────────┘
-                              │  Bearer sork_live_*  (license key)
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                  SORK Cloud Engine (sork-back)                      │
-│                                                                     │
-│   ┌──────────────────────────────────────────────────────────┐     │
-│   │              Multi-Tier Provider Router                  │     │
-│   │                                                          │     │
-│   │   chat   →  Groq          (fast llama-3.3-70b)           │     │
-│   │   embed  →  Cohere        (embed-english-v3.0)           │     │
-│   │   heavy  →  NVIDIA        (Nemotron / large models)      │     │
-│   │   safety →  NVIDIA        (Nemotron guardrails)          │     │
-│   │                                                          │     │
-│   │   Resolves user's BYOK first → inbuilt fallback          │     │
-│   └──────────────────────────────────────────────────────────┘     │
-│                              │                                      │
-│   ┌──────────────────────────┴───────────────────────────────┐     │
-│   │                  4-Stage Pipeline                        │     │
-│   │                                                          │     │
-│   │   ① Safety Gate    →  Nemotron screens every request    │     │
-│   │   ② Triage Agent   →  Groq fast pattern detection       │     │
-│   │   ③ Fix Agent      →  Minimal-diff patch generation     │     │
-│   │   ④ Verify Agent   →  Re-scan + 0–100 score             │     │
-│   └──────────────────────────────────────────────────────────┘     │
-│                              │                                      │
-│   ┌──────────────────────────┴───────────────────────────────┐     │
-│   │              Memory & Persistence                        │     │
-│   │                                                          │     │
-│   │   Cohere embeddings  →  Hybrid semantic + recency        │     │
-│   │   PostgreSQL (Neon)  →  Per-user, per-repo context       │     │
-│   │   AES-256-GCM        →  BYOK keys encrypted at rest      │     │
-│   └──────────────────────────────────────────────────────────┘     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+---
 
-### BYOK direct mode (no SORK Cloud)
+## What it detects
 
-```
-sork-cli  ─── direct API call ───►  NVIDIA / Groq / OpenAI / Ollama
+The scanner walks your code AST (TypeScript/JavaScript) or runs pattern-based detection (all other languages):
+
+| Type | Detects |
+|---|---|
+| `UNSAFE_EVAL` | `eval(...)`, `new Function(...)`, `setTimeout("...")`, `setInterval("...")` |
+| `INSECURE_RANDOM` | `Math.random()` used in security contexts |
+| `XSS` | `.innerHTML` / `.outerHTML` assignment, JSX `dangerouslySetInnerHTML` |
+| `HARDCODED_SECRET` | String literals assigned to `apiKey`, `password`, `token`, `privateKey`, etc. |
+| `SQL_INJECTION` | SQL keywords in template literals with interpolation, or string-concat |
+| `DEPENDENCY_VULN` | Wildcard or `latest` versions in `package.json` |
+| `COMMAND_INJECTION` | `exec()`, `spawn()` with unsanitized user input |
+| `PATH_TRAVERSAL` | Unchecked path joins with user input |
+| `SSRF` | Fetch/HTTP calls with user-controlled URLs |
+| `CRYPTO_WEAK` | Weak hash algorithms (MD5, SHA1 for security) |
+
+Plus language-specific patterns for Python (`pickle.loads`, `yaml.load`), Rust (`unsafe` blocks), Go (`fmt.Sprintf` in SQL), Java (deserialization), and more.
+
+Findings include character-level offsets so the fixer can replace the exact AST node range.
+
+---
+
+## Interactive Chat (NEW in v1.3.0)
+
+```bash
+sork chat
 ```
 
-Nothing leaves your machine except the model call. Zero telemetry.
+Opens a Claude Code-style interactive REPL. Ask anything about security, scan files inline, get fixes with a single command.
+
+### Chat commands
+
+```
+/file <path>        Attach a file to analyze
+/scan <path>        Quick-scan a file
+/fix <path>         Scan + auto-fix a file
+/model              Show current model
+/model <name>       Switch model
+/search <query>     Search security advisories
+/save-test <path>   Save last generated test
+/history            Show conversation history
+/clear              Clear conversation
+/help               Show help
+/exit               Exit chat
+```
+
+Or just type naturally -- SORK auto-detects intent and routes to the right agent.
+
+```
+sork > scan this file for XSS vulnerabilities
+sork > /file ./src/auth.ts
+sork > what's wrong with the password hashing here?
+sork > fix it
+```
+
+The chat connects to the same multi-agent harness as the web dashboard: safety gate, triage, fix, verify, and memory -- all in your terminal.
 
 ---
 
 ## Commands
 
-| Command                      | Description                                   |
-| ---------------------------- | --------------------------------------------- |
-| `sork init`                  | Initialize SORK in current project            |
-| `sork config set-key <key>`  | Save license/BYOK key (chmod 600)             |
-| `sork config list`           | Show current config                           |
-| `sork scan`                  | Full pipeline scan on project                 |
-| `sork scan --file ./auth.ts` | Scan a single file                            |
-| `sork scan --lang python`    | Scan only files of one language               |
-| `sork fix`                   | Apply AI-generated patches                    |
-| `sork verify`                | Re-scan patched code, score 0–100             |
-| `sork doctor`                | Project health report + language breakdown    |
-| `sork guard`                 | Watch mode — re-scan on every file save       |
-| `sork review <file>`         | AI review with APPROVE / WARN / BLOCK verdict |
-| `sork review --staged`       | Review git staged diff before commit          |
-| `sork send <file>`           | Send file to web dashboard                    |
-| `sork hook vscode`           | Add SORK tasks to `.vscode/tasks.json`        |
-| `sork setup-hooks`           | Install git pre-commit hook                   |
-| `sork init-claude-agent`     | Use Claude as fix agent                       |
-| `sork init-openai-agent`     | Use OpenAI                                    |
-| `sork init-codex-agent`      | Use Codex                                     |
-| `sork init-gemini-agent`     | Use Gemini                                    |
-| `sork init-mistral-agent`    | Use Mistral                                   |
-| `sork init-llama-agent`      | Use Llama                                     |
-| `sork list-agents`           | Show initialized agents                       |
+```
++------------+    +------------+    +-----------------+    +-----------+    +-----------+
+|  Scanner   |--->| Agent 01   |--->| Agent 02        |--->| Agent 03  |--->| Agent 04  |
+| (AST walk) |    | TRIAGE     |    | REMEDIATION     |    | KEEPER    |    | TEST GEN  |
+|            |    | drop FPs   |    | rewrite code    |    | re-scan   |    | prove fix |
++------------+    +------------+    +-----------------+    +-----------+    +-----------+
+                       | AI               | AI                  |               | AI
+                       v                  v                     v               v
+                  is this real?     safe rewrite?         .sork/audit.log  regression test
+```
+
+- **Triage** -- asks the AI whether each finding is real or a false positive given file context. Falls back to filename heuristics when no API key is set.
+- **Remediation** -- sends the vulnerable region + surrounding context, generates a safe replacement. Uses learned preferences from your past edits. Falls back to deterministic rewrites for common patterns.
+- **Keeper** -- re-runs the scanner to confirm the vuln is gone and no new findings were introduced. Writes to `.sork/audit.log`.
+- **Test Gen** -- generates a runnable security regression test that proves the vulnerability is patched. Supports vitest, jest, pytest, go test, JUnit, and Rust test modules.
+
+### Cross-scan memory
+
+SORK tracks recurring vulnerability patterns across your scans. If you keep hitting the same SQL injection pattern in different files, SORK flags it with occurrence counts and suggests project-wide fixes.
+
+### Fix learning
+
+When you edit an AI-generated fix (in the web dashboard diff editor), SORK records the delta and builds a preference model per vulnerability category. Future fixes adapt to your coding style -- if you always prefer `bcrypt` over `argon2`, SORK remembers.
 
 ---
 
-## Language Support
+## CLI reference
 
-SORK scans **9+ languages** with 40+ vulnerability patterns:
+```
+sork chat              Interactive AI security chat (like Claude Code)
+sork init              Initialize SORK in current project
+sork scan              Run security scan on project
+sork scan --file <p>   Scan a single file
+sork fix               Auto-fix detected issues
+sork status            Show SORK status
+sork guard             Watch files in real-time, scan on save
+sork review [file]     Review a file or staged diff before committing
+sork review --staged   Review only staged changes
+sork doctor            Full project health check & language breakdown
+sork send [file]       Send a file/folder to SORK Cloud dashboard
+sork pre-commit        Run pre-commit hooks (auto-called)
+sork setup-hooks       Install git pre-commit hooks
+sork hook vscode       Add SORK tasks to .vscode/tasks.json
+sork config            Manage AI provider config (BYOK)
+```
 
-| Language       | Patterns | Examples                                              |
-| -------------- | -------- | ----------------------------------------------------- |
-| **TypeScript** | 12       | SQL injection, XSS, prototype pollution, unsafe `any` |
-| **JavaScript** | 10       | `eval`, command injection, hardcoded secrets          |
-| **Python**     | 8        | `pickle.loads`, `shell=True`, SSRF                    |
-| **Rust**       | 5        | `unsafe` blocks, integer overflow                     |
-| **Go**         | 6        | SQL string concat, nil dereference                    |
-| **Java**       | 7        | XXE, deserialization, weak crypto                     |
-| **Ruby**       | 4        | Mass assignment, command injection                    |
-| **PHP**        | 5        | SQL injection, file inclusion                         |
-| **C/C++**      | 6        | Buffer overflow, format string                        |
+## AI Agent Initialization
 
-Plus **AI artifact detection** — finds hallucinated APIs, torn code, and inconsistent imports in AI-generated code.
-
----
-
-## Example Output
-
-### `sork scan`
+SORK supports initializing dedicated AI agents for different providers:
 
 ```bash
-$ sork scan --file src/api/auth.ts
+sork init-claude-agent    # Claude (Anthropic)
+sork init-openai-agent    # GPT-4o (OpenAI)
+sork init-codex-agent     # Codex-3 (OpenAI)
+sork init-gemini-agent    # Gemini 2.0 Pro (Google)
+sork init-mistral-agent   # Mistral Large (Mistral)
+sork init-llama-agent     # Llama 4 Maverick (Meta)
 
-  src/api/auth.ts [typescript] — 2 issue(s)
-
-  CRITICAL [CWE-89] SQL Injection — Line 47
-  → User input concatenated into SQL query string
-  Fix: db.prepare("SELECT * FROM users WHERE id = ?").get(id)
-
-  HIGH [CWE-798] Hardcoded Secret — Line 12
-  → API key embedded in source code
-  Fix: Move to environment variable: process.env.STRIPE_SECRET_KEY
+# List all initialized agents
+sork list-agents
 ```
 
-### `sork doctor`
+Agents are stored in `.sork/agents/<model>-agent.json` with provider info, capabilities, and initialization timestamp.
 
+---
+
+## GitHub Action CI (NEW)
+
+Add SORK to your CI pipeline -- scans every PR automatically and posts a comment with findings.
+
+```yaml
+# .github/workflows/sork-scan.yml
+name: SORK Security Scan
+on:
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  sork-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Atofinite5/sork-back/github-action@main
+        with:
+          sork-key: ${{ secrets.SORK_API_KEY }}
+          fail-on-critical: true
 ```
-  ╭──────────────────────────────────────────╮
-  │  SORK  ·  Project Health Report          │
-  ╰──────────────────────────────────────────╯
 
-  Language Breakdown
-  typescript   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░  42 files
-  python       ▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░  21 files
-
-  Health Score
-  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░  80 / 100
-
-  secrets        0    none found ✓
-  torn code      0    none found ✓
-  ai artifacts   4    verify generated logic
-  high-risk      3    auth.ts, queries.ts, parser.py
-
-  clean    Project is in good health ✓
-```
-
-### `sork review --staged`
-
-```
-  🟡 WARN: 1 high-severity issue in staged changes
-
-  HIGH Line 47 of src/api/auth.ts:
-  → SQL string concatenation detected
-  Fix: Use prepared statements with parameterized queries
-```
+The action:
+1. Collects the PR diff
+2. Sends it to SORK for AI-powered triage
+3. Posts a structured PR comment with severity table
+4. Optionally fails the check on critical/high findings
 
 ---
 
 ## Configuration
 
-Config lives at `~/.config/sork/config.json` (mode 0600):
+```bash
+# Primary setup
+sork config set-key <YOUR_API_KEY>
 
-```json
-{
-  "ai": {
-    "apiKey": "sork_live_xxx",
-    "baseURL": "https://integrate.api.nvidia.com/v1",
-    "model": "meta/llama-3.3-70b-instruct",
-    "temperature": 0.2,
-    "maxTokens": 4096
-  }
-}
+# Inspect (apiKey is redacted)
+sork config list
+
+# Override individual fields
+sork config set model       <model-name>
+sork config set temperature 0.1
+sork config set maxTokens   4096
+
+# Show config file path
+sork config path
+
+# Wipe everything
+sork config clear
 ```
 
-### Environment variables
+Environment variable overrides (useful in CI):
 
-| Variable         | Purpose                               |
-| ---------------- | ------------------------------------- |
-| `SORK_API_KEY`   | Override stored API key               |
-| `SORK_CLOUD_URL` | Override SORK Cloud backend URL       |
-| `COHERE_API_KEY` | Enable Cohere fallback for embeddings |
-| `DEBUG=1`        | Verbose error logging                 |
+```bash
+export SORK_API_KEY=...
+export SORK_MODEL=<model-name>
+```
 
 ---
 
-## Integration Examples
-
-### Pre-commit hook
+## Pre-commit hook
 
 ```bash
 sork setup-hooks
@@ -290,19 +295,27 @@ Re-scans changed files in 150ms. Inline findings as you save.
 
 ---
 
-## sork-ignore annotations
+## Guard mode
 
-Suppress false positives inline:
-
-```typescript
-// sork-ignore: CWE-89 — table name is hardcoded, not user input
-const query = `SELECT * FROM ${table} WHERE id = ?`;
-
-// sork-ignore-next-line
-const debugKey = 'test-only-not-real';
+```bash
+sork guard
 ```
 
-Or use a `.sorkignore` file (same syntax as `.gitignore`).
+Watches your project files in real-time. On every save, SORK scans the modified file and shows results in ~150ms. Great for catching issues as you code.
+
+---
+
+## Doctor
+
+```bash
+sork doctor
+```
+
+Full project health check:
+- Language breakdown with file counts and line counts
+- Dependency audit
+- Configuration validation
+- Security posture score 0-100
 
 ---
 
@@ -370,6 +383,6 @@ Every CLI scan appears live at **[sorkcloud.space/dashboard](https://sorkcloud.s
 
 ## License
 
-MIT © [Bhargav Kalambhe](https://github.com/bhargavkalambhe)
+MIT -- see [LICENSE](./LICENSE).
 
 Built for developers who care about shipping secure code.
