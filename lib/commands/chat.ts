@@ -122,12 +122,11 @@ async function sendMessage(apiKey: string, message: string, attachments: { name:
   if (pendingFixTriage) payload.pendingFixTriage = pendingFixTriage;
 
   try {
-    const res = await fetch(`${API_BASE}/api/chat`, {
+    const res = await fetch(`${API_BASE}/api/cli/chat`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'x-clerk-user-id': 'cli',
       },
       body: JSON.stringify(payload),
     });
@@ -330,8 +329,8 @@ export async function startChat(): Promise<void> {
         case 'model': {
           if (!arg) {
             try {
-              const res = await fetch(`${API_BASE}/api/chat/model`, {
-                headers: { 'Authorization': `Bearer ${apiKey}`, 'x-clerk-user-id': 'cli' },
+              const res = await fetch(`${API_BASE}/api/cli/chat/model`, {
+                headers: { 'Authorization': `Bearer ${apiKey}` },
               });
               const data = await res.json() as { model: string };
               console.log(chalk.dim(`  Current model: ${chalk.cyan(data.model ?? 'default')}\n`));
