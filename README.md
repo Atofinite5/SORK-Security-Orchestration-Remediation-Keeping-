@@ -24,12 +24,12 @@ Scan repositories · Detect vulnerabilities · Generate fixes · Verify patches 
 
 ## Why SORK
 
-| Without SORK | With SORK |
-|---|---|
+| Without SORK                                      | With SORK                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------- |
 | Manual code reviews catch ~30% of vulnerabilities | AI catches CWE-89, CWE-22, CWE-79, CWE-476 + 40 more patterns |
-| Days between bug → fix → verify | Seconds — scan, fix, verify in one pipeline |
-| Locked into one AI vendor | BYOK — bring Groq, NVIDIA, Cohere, OpenAI, any key |
-| Generic fixes that break logic | Memory-aware fixes consistent with your codebase |
+| Days between bug → fix → verify                   | Seconds — scan, fix, verify in one pipeline                   |
+| Locked into one AI vendor                         | BYOK — bring Groq, NVIDIA, Cohere, OpenAI, any key            |
+| Generic fixes that break logic                    | Memory-aware fixes consistent with your codebase              |
 
 ---
 
@@ -126,30 +126,30 @@ Nothing leaves your machine except the model call. Zero telemetry.
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `sork init` | Initialize SORK in current project |
-| `sork config set-key <key>` | Save license/BYOK key (chmod 600) |
-| `sork config list` | Show current config |
-| `sork scan` | Full pipeline scan on project |
-| `sork scan --file ./auth.ts` | Scan a single file |
-| `sork scan --lang python` | Scan only files of one language |
-| `sork fix` | Apply AI-generated patches |
-| `sork verify` | Re-scan patched code, score 0–100 |
-| `sork doctor` | Project health report + language breakdown |
-| `sork guard` | Watch mode — re-scan on every file save |
-| `sork review <file>` | AI review with APPROVE / WARN / BLOCK verdict |
-| `sork review --staged` | Review git staged diff before commit |
-| `sork send <file>` | Send file to web dashboard |
-| `sork hook vscode` | Add SORK tasks to `.vscode/tasks.json` |
-| `sork setup-hooks` | Install git pre-commit hook |
-| `sork init-claude-agent` | Use Claude as fix agent |
-| `sork init-openai-agent` | Use OpenAI |
-| `sork init-codex-agent` | Use Codex |
-| `sork init-gemini-agent` | Use Gemini |
-| `sork init-mistral-agent` | Use Mistral |
-| `sork init-llama-agent` | Use Llama |
-| `sork list-agents` | Show initialized agents |
+| Command                      | Description                                   |
+| ---------------------------- | --------------------------------------------- |
+| `sork init`                  | Initialize SORK in current project            |
+| `sork config set-key <key>`  | Save license/BYOK key (chmod 600)             |
+| `sork config list`           | Show current config                           |
+| `sork scan`                  | Full pipeline scan on project                 |
+| `sork scan --file ./auth.ts` | Scan a single file                            |
+| `sork scan --lang python`    | Scan only files of one language               |
+| `sork fix`                   | Apply AI-generated patches                    |
+| `sork verify`                | Re-scan patched code, score 0–100             |
+| `sork doctor`                | Project health report + language breakdown    |
+| `sork guard`                 | Watch mode — re-scan on every file save       |
+| `sork review <file>`         | AI review with APPROVE / WARN / BLOCK verdict |
+| `sork review --staged`       | Review git staged diff before commit          |
+| `sork send <file>`           | Send file to web dashboard                    |
+| `sork hook vscode`           | Add SORK tasks to `.vscode/tasks.json`        |
+| `sork setup-hooks`           | Install git pre-commit hook                   |
+| `sork init-claude-agent`     | Use Claude as fix agent                       |
+| `sork init-openai-agent`     | Use OpenAI                                    |
+| `sork init-codex-agent`      | Use Codex                                     |
+| `sork init-gemini-agent`     | Use Gemini                                    |
+| `sork init-mistral-agent`    | Use Mistral                                   |
+| `sork init-llama-agent`      | Use Llama                                     |
+| `sork list-agents`           | Show initialized agents                       |
 
 ---
 
@@ -157,17 +157,17 @@ Nothing leaves your machine except the model call. Zero telemetry.
 
 SORK scans **9+ languages** with 40+ vulnerability patterns:
 
-| Language | Patterns | Examples |
-|---|---|---|
-| **TypeScript** | 12 | SQL injection, XSS, prototype pollution, unsafe `any` |
-| **JavaScript** | 10 | `eval`, command injection, hardcoded secrets |
-| **Python** | 8 | `pickle.loads`, `shell=True`, SSRF |
-| **Rust** | 5 | `unsafe` blocks, integer overflow |
-| **Go** | 6 | SQL string concat, nil dereference |
-| **Java** | 7 | XXE, deserialization, weak crypto |
-| **Ruby** | 4 | Mass assignment, command injection |
-| **PHP** | 5 | SQL injection, file inclusion |
-| **C/C++** | 6 | Buffer overflow, format string |
+| Language       | Patterns | Examples                                              |
+| -------------- | -------- | ----------------------------------------------------- |
+| **TypeScript** | 12       | SQL injection, XSS, prototype pollution, unsafe `any` |
+| **JavaScript** | 10       | `eval`, command injection, hardcoded secrets          |
+| **Python**     | 8        | `pickle.loads`, `shell=True`, SSRF                    |
+| **Rust**       | 5        | `unsafe` blocks, integer overflow                     |
+| **Go**         | 6        | SQL string concat, nil dereference                    |
+| **Java**       | 7        | XXE, deserialization, weak crypto                     |
+| **Ruby**       | 4        | Mass assignment, command injection                    |
+| **PHP**        | 5        | SQL injection, file inclusion                         |
+| **C/C++**      | 6        | Buffer overflow, format string                        |
 
 Plus **AI artifact detection** — finds hallucinated APIs, torn code, and inconsistent imports in AI-generated code.
 
@@ -243,12 +243,12 @@ Config lives at `~/.config/sork/config.json` (mode 0600):
 
 ### Environment variables
 
-| Variable | Purpose |
-|---|---|
-| `SORK_API_KEY` | Override stored API key |
-| `SORK_CLOUD_URL` | Override SORK Cloud backend URL |
+| Variable         | Purpose                               |
+| ---------------- | ------------------------------------- |
+| `SORK_API_KEY`   | Override stored API key               |
+| `SORK_CLOUD_URL` | Override SORK Cloud backend URL       |
 | `COHERE_API_KEY` | Enable Cohere fallback for embeddings |
-| `DEBUG=1` | Verbose error logging |
+| `DEBUG=1`        | Verbose error logging                 |
 
 ---
 
@@ -299,7 +299,7 @@ Suppress false positives inline:
 const query = `SELECT * FROM ${table} WHERE id = ?`;
 
 // sork-ignore-next-line
-const debugKey = "test-only-not-real";
+const debugKey = 'test-only-not-real';
 ```
 
 Or use a `.sorkignore` file (same syntax as `.gitignore`).
@@ -308,11 +308,11 @@ Or use a `.sorkignore` file (same syntax as `.gitignore`).
 
 ## Pricing
 
-| Plan | Price | Limits |
-|---|---|---|
-| **Free** | $0 | 14 lifetime scans · 1 license key · all features |
-| **Pro** | $19/mo | Unlimited scans · 5 license keys · hybrid memory · priority queue |
-| **Pro Plus** | $28/mo | Everything in Pro · 20 license keys · team dashboard · SLA |
+| Plan         | Price  | Limits                                                            |
+| ------------ | ------ | ----------------------------------------------------------------- |
+| **Free**     | $0     | 14 lifetime scans · 1 license key · all features                  |
+| **Pro**      | $19/mo | Unlimited scans · 5 license keys · hybrid memory · priority queue |
+| **Pro Plus** | $28/mo | Everything in Pro · 20 license keys · team dashboard · SLA        |
 
 [Subscribe at sorkcloud.space/pricing](https://sorkcloud.space/pricing)
 
@@ -324,13 +324,13 @@ Or use a `.sorkignore` file (same syntax as `.gitignore`).
 
 Every CLI scan appears live at **[sorkcloud.space/dashboard](https://sorkcloud.space/dashboard)**:
 
-| View | What you see |
-|---|---|
-| **Command** | Chat with sork.ai, drop project folders for in-browser scans |
-| **Scans** | 7-day activity chart, severity donut, fix rate gauge, top files, scan history |
-| **Repositories** | Connect GitHub, scan any repo |
-| **Pull Requests** | Monaco diff editor + AI merge conflict resolution |
-| **API Keys** | License keys + BYOK credentials (AES-256-GCM encrypted) |
+| View              | What you see                                                                  |
+| ----------------- | ----------------------------------------------------------------------------- |
+| **Command**       | Chat with sork.ai, drop project folders for in-browser scans                  |
+| **Scans**         | 7-day activity chart, severity donut, fix rate gauge, top files, scan history |
+| **Repositories**  | Connect GitHub, scan any repo                                                 |
+| **Pull Requests** | Monaco diff editor + AI merge conflict resolution                             |
+| **API Keys**      | License keys + BYOK credentials (AES-256-GCM encrypted)                       |
 
 ---
 
