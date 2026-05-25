@@ -91,12 +91,22 @@ export async function setApiKey(apiKey: string): Promise<AIConfig> {
     throw new Error('API key cannot be empty');
   }
 
+  if (!isCloudKey(trimmed)) {
+    throw new Error(
+      `Only SORK Cloud license keys are accepted by the CLI.\n` +
+        `  Expected format: sork_live_*\n\n` +
+        `  Get a free license key:  ${KEY_SIGNUP_URL}\n\n` +
+        `  Want to use your own AI provider (Groq / NVIDIA / Cohere / OpenAI)?\n` +
+        `  Add them at:  ${KEY_SIGNUP_URL}/dashboard?view=keys\n` +
+        `  Your CLI scans will automatically route through your BYOK quota.`
+    );
+  }
+
   const existing = (await loadConfig()).ai;
-  // Cloud keys don't use baseURL/model — those are resolved server-side
   const next: AIConfig = aiSchema.parse({
     apiKey: trimmed,
-    baseURL: isCloudKey(trimmed) ? DEFAULT_BASE_URL : (existing?.baseURL ?? DEFAULT_BASE_URL),
-    model: isCloudKey(trimmed) ? DEFAULT_MODEL : (existing?.model ?? DEFAULT_MODEL),
+    baseURL: DEFAULT_BASE_URL,
+    model: DEFAULT_MODEL,
     temperature: existing?.temperature ?? 0.2,
     maxTokens: existing?.maxTokens ?? 8192,
   });

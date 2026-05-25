@@ -46,7 +46,7 @@ Requires **Node.js ≥ 18**.
 
 ## Quick Start
 
-### Option A — Managed (single license key)
+**One license key. That's all you need.**
 
 ```bash
 # 1. Sign up at https://sorkcloud.space → Dashboard → API Keys → Issue
@@ -60,17 +60,9 @@ sork scan
 sork fix
 ```
 
-You bring **just one license key**. The SORK Cloud engine routes all AI work through your account's BYOK keys (if added) or inbuilt providers.
+The SORK Cloud engine handles all the AI model routing server-side. You never need to bring your own Groq, NVIDIA, OpenAI, or Cohere keys to the CLI — just paste a `sork_live_*` key and everything works.
 
-### Option B — Direct BYOK (skip SORK Cloud)
-
-```bash
-sork config set-key nvapi-xxxxxxxxxxxx
-sork config set model meta/llama-3.3-70b-instruct
-sork scan
-```
-
-Supported providers: NVIDIA NIM, Groq, OpenAI, Ollama, LocalAI, any custom OpenAI-compatible endpoint.
+> **Want to use your own AI keys?** Add them via the web dashboard at [sorkcloud.space/dashboard](https://sorkcloud.space/dashboard) → **API Keys → BYOK**. Once added, every CLI scan from your machine routes through your own quota automatically — no CLI config needed.
 
 ---
 

@@ -183,7 +183,7 @@ function showHelp(): void {
   console.log('  init-mistral-agent Initialize Mistral agent');
   console.log('  init-llama-agent  Initialize Llama agent');
   console.log('  list-agents       List all initialized agents');
-  console.log('  config            Manage AI provider config (BYOK)');
+  console.log('  config            Manage license key & local config');
   console.log('  scan              Run security scan on project');
   console.log('  fix               Auto-fix detected issues');
   console.log('  status            Show SORK status');
