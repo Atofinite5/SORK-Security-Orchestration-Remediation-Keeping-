@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import chalk from 'chalk';
 import minimist from 'minimist';
 import { SorkOrchestrator } from '../lib/orchestrator.js';
@@ -25,6 +28,10 @@ import { runDoctor } from '../lib/commands/doctor.js';
 import { detectLanguage, scanWithLanguagePatterns } from '../lib/scanners/languages.js';
 import { runStabilityChecks } from '../lib/scanners/stability.js';
 import { promises as nodeFs } from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8'));
 
 const logger = new Logger('SORK');
 
@@ -230,7 +237,7 @@ async function main(): Promise<void> {
     }
 
     if (argv.version) {
-      console.log('SORK v1.3.0');
+      console.log(`SORK v${pkg.version}`);
       process.exit(0);
     }
 
