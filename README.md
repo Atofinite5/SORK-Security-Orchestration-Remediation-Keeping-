@@ -4,14 +4,12 @@
 
 Scans your code for vulnerabilities across 9 languages, triages false positives, generates fixes, verifies the result, generates regression tests, and learns from your edits.
 
-Security Orchestration, Remediation & Keeping
-
-````
+## Two ways to use
 
 - **Sorkcloud** — paste a managed `sork_live_*` key from [sorkcloud.space](https://sorkcloud.space). 14 free requests, then $19/mo Pro or $28/mo Pro Plus.
 - **BYOK** — bring your own API key. Your key, your credits, all calls go directly from your machine to the provider.
 
-> Current status: **v1.3.0**. Multi-language scanner, AI-driven agents (BYOK or Sorkcloud), interactive chat REPL, guard mode, doctor diagnostics, deterministic fallbacks.
+> Current status: **v1.4.0**. Multi-language scanner, AI-driven agents (BYOK or Sorkcloud), interactive chat REPL, guard mode, doctor diagnostics, cross-scan memory, fix learning, auto test generation, GitHub Action CI, deterministic fallbacks.
 
 ---
 
@@ -19,21 +17,22 @@ Security Orchestration, Remediation & Keeping
 
 ```bash
 npm install -g @atofinite5/sork-cli
-sork --version  # SORK v1.3.0
-````
+sork --version  # SORK v1.4.0
+```
 
-Requires **Node.js ≥ 18**.
+Requires **Node.js >= 18**.
 
 ---
 
 ## Quick start (Sorkcloud -- easiest)
 
-````bash
+```bash
 # 1. Sign up at https://sorkcloud.space -> /dashboard -> "Issue new key"
 # 2. Copy the sork_live_xxx key
 
 # 3. Scan
 sork scan
+```
 
 You get 14 AI-powered requests free. Upgrade to Pro for unlimited.
 
@@ -46,11 +45,11 @@ sork config set model <model-name>
 sork init
 sork scan
 sork fix
-````
+```
 
-The SORK Cloud engine handles all the AI model routing server-side. You never need to bring your own Groq, NVIDIA, OpenAI, or Cohere keys to the CLI — just paste a `sork_live_*` key and everything works.
+The SORK Engine handles all AI model routing server-side. Just paste a `sork_live_*` key and everything works.
 
-> **Want to use your own AI keys?** Add them via the web dashboard at [sorkcloud.space/dashboard](https://sorkcloud.space/dashboard) → **API Keys → BYOK**. Once added, every CLI scan from your machine routes through your own quota automatically — no CLI config needed.
+> **Want to use your own AI keys?** Add them via the web dashboard at [sorkcloud.space/dashboard](https://sorkcloud.space/dashboard) -> **API Keys -> BYOK**. Once added, every CLI scan from your machine routes through your own quota automatically -- no CLI config needed.
 
 ---
 
@@ -95,13 +94,13 @@ Findings include character-level offsets so the fixer can replace the exact AST 
 
 ---
 
-## Interactive Chat (NEW in v1.3.0)
+## Interactive Chat (NEW in v1.4.0)
 
 ```bash
 sork chat
 ```
 
-Opens a Claude Code-style interactive REPL. Ask anything about security, scan files inline, get fixes with a single command.
+Opens an interactive REPL powered by the SORK Engine. Ask anything about security, scan files inline, get fixes with a single command.
 
 ### Chat commands
 
@@ -132,7 +131,7 @@ The chat connects to the same multi-agent harness as the web dashboard: safety g
 
 ---
 
-## Commands
+## Pipeline
 
 ```
 +------------+    +------------+    +-----------------+    +-----------+    +-----------+
@@ -163,7 +162,7 @@ When you edit an AI-generated fix (in the web dashboard diff editor), SORK recor
 ## CLI reference
 
 ```
-sork chat              Interactive AI security chat (like Claude Code)
+sork chat              Interactive AI security chat
 sork init              Initialize SORK in current project
 sork scan              Run security scan on project
 sork scan --file <p>   Scan a single file
@@ -182,15 +181,15 @@ sork config            Manage AI provider config (BYOK)
 
 ## AI Agent Initialization
 
-SORK supports initializing dedicated AI agents for different providers:
+SORK supports initializing dedicated AI agents:
 
 ```bash
-sork init-claude-agent    # Claude (Anthropic)
-sork init-openai-agent    # GPT-4o (OpenAI)
-sork init-codex-agent     # Codex-3 (OpenAI)
-sork init-gemini-agent    # Gemini 2.0 Pro (Google)
-sork init-mistral-agent   # Mistral Large (Mistral)
-sork init-llama-agent     # Llama 4 Maverick (Meta)
+sork init-claude-agent    # Claude agent
+sork init-openai-agent    # OpenAI agent
+sork init-codex-agent     # Codex agent
+sork init-gemini-agent    # Gemini agent
+sork init-mistral-agent   # Mistral agent
+sork init-llama-agent     # Llama agent
 
 # List all initialized agents
 sork list-agents
@@ -275,7 +274,7 @@ Every `git commit` now runs `sork review --staged` and blocks on BLOCK verdict.
 sork hook vscode
 ```
 
-Adds tasks to `.vscode/tasks.json`. Run via **Cmd+Shift+P → Tasks: Run Task → SORK Scan**.
+Adds tasks to `.vscode/tasks.json`. Run via **Cmd+Shift+P -> Tasks: Run Task -> SORK Scan**.
 
 ### CI/CD (GitHub Actions)
 
@@ -326,13 +325,13 @@ Full project health check:
 
 | Plan         | Price  | Limits                                                            |
 | ------------ | ------ | ----------------------------------------------------------------- |
-| **Free**     | $0     | 14 lifetime scans · 1 license key · all features                  |
-| **Pro**      | $19/mo | Unlimited scans · 5 license keys · hybrid memory · priority queue |
-| **Pro Plus** | $28/mo | Everything in Pro · 20 license keys · team dashboard · SLA        |
+| **Free**     | $0     | 14 lifetime scans - 1 license key - all features                  |
+| **Pro**      | $19/mo | Unlimited scans - 5 license keys - hybrid memory - priority queue |
+| **Pro Plus** | $28/mo | Everything in Pro - 20 license keys - team dashboard - SLA        |
 
 [Subscribe at sorkcloud.space/pricing](https://sorkcloud.space/pricing)
 
-**BYOK direct mode is always free** — you pay only your AI provider for API calls.
+**BYOK direct mode is always free** -- you pay only your AI provider for API calls.
 
 ---
 
@@ -354,23 +353,23 @@ Every CLI scan appears live at **[sorkcloud.space/dashboard](https://sorkcloud.s
 
 - License keys are **JWTs signed with HMAC-SHA256**
 - BYOK credentials are **encrypted at rest (AES-256-GCM)** before hitting the database
-- Every request first passes **Nemotron safety guardrails** (no jailbreaks, no harmful payloads)
-- Code submitted for scanning is **never persisted** beyond the pipeline run — only metadata (file paths, CWE IDs, scores) is stored
+- Every request first passes **SORK Engine safety guardrails** (no jailbreaks, no harmful payloads)
+- Code submitted for scanning is **never persisted** beyond the pipeline run -- only metadata (file paths, CWE IDs, scores) is stored
 - Local config file uses **mode 0600** (owner-read-only)
 
 ---
 
 ## Troubleshooting
 
-**`Invalid or revoked license key`** — Your `sork_live_*` key expired or was revoked. Issue a new one at sorkcloud.space/dashboard.
+**`Invalid or revoked license key`** -- Your `sork_live_*` key expired or was revoked. Issue a new one at sorkcloud.space/dashboard.
 
-**`401 Unauthorized`** — BYOK key is invalid. Run `sork config list` to verify, or rotate the key with your provider.
+**`401 Unauthorized`** -- BYOK key is invalid. Run `sork config list` to verify, or rotate the key with your provider.
 
-**Slow scans** — Free tier uses shared queue. Upgrade to Pro for priority routing.
+**Slow scans** -- Free tier uses shared queue. Upgrade to Pro for priority routing.
 
-**`Quota exhausted`** — Free tier has 14 lifetime scans. Add a BYOK key to use your own quota.
+**`Quota exhausted`** -- Free tier has 14 lifetime scans. Add a BYOK key to use your own quota.
 
-**Debug mode** — `DEBUG=1 sork scan` shows full error traces.
+**Debug mode** -- `DEBUG=1 sork scan` shows full error traces.
 
 ---
 
