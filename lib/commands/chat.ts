@@ -31,6 +31,8 @@ let sessionId: string = randomUUID();
 let history: ChatMessage[] = [];
 let pendingFixCode: string | undefined;
 let pendingFixTriage: unknown | undefined;
+let pendingFixFilePath: string | undefined;
+let pendingFixedCode: string | undefined;
 
 const tierIcon = (t: string) =>
   t === 'fast' ? chalk.yellow('⚡') : t === 'deep' ? chalk.magenta('🧠') : chalk.cyan('🛡');
@@ -127,6 +129,88 @@ function printReply(text: string): void {
   }
 }
 
+function printDiff(original: string, fixed: string, filePath: string): void {
+  const origLines = original.split('\n');
+  const fixedLines = fixed.split('\n');
+
+  console.log(chalk.bold(`\n  ┌─ Diff: ${path.basename(filePath)} ──────────────────`));
+  console.log(chalk.dim(`  │ ${filePath}`));
+  console.log(chalk.dim('  │'));
+
+  // Simple line-by-line diff — show removed/added lines with context
+  const maxLen = Math.max(origLines.length, fixedLines.length);
+  let changeCount = 0;
+
+  for (let i = 0; i < maxLen; i++) {
+    const origLine = origLines[i];
+    const fixedLine = fixedLines[i];
+
+    if (origLine === fixedLine) {
+      // Unchanged — show context lines near changes (within 2 lines)
+      const nearChange =
+        (i > 0 && origLines[i - 1] !== fixedLines[i - 1]) ||
+        (i > 1 && origLines[i - 2] !== fixedLines[i - 2]) ||
+        (i < maxLen - 1 && origLines[i + 1] !== fixedLines[i + 1]) ||
+        (i < maxLen - 2 && origLines[i + 2] !== fixedLines[i + 2]);
+      if (nearChange && origLine !== undefined) {
+        const lineNum = String(i + 1).padStart(4, ' ');
+        console.log(chalk.dim(`  │ ${lineNum} │ ${origLine}`));
+      }
+    } else {
+      changeCount++;
+      const lineNum = String(i + 1).padStart(4, ' ');
+      if (origLine !== undefined) {
+        console.log(chalk.red(`  │ ${lineNum} │ - ${origLine}`));
+      }
+      if (fixedLine !== undefined) {
+        console.log(chalk.green(`  │ ${lineNum} │ + ${fixedLine}`));
+      }
+    }
+  }
+
+  console.log(chalk.dim('  │'));
+  console.log(chalk.bold(`  └─ ${changeCount} line(s) changed ──────────────────────\n`));
+}
+
+async function applyFix(
+  filePath: string,
+  fixedCode: string,
+  rl: ReturnType<typeof createInterface>
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    console.log(
+      chalk.yellow(`\n  ⚠ This will overwrite: ${chalk.bold(filePath)}`)
+    );
+    console.log(chalk.dim('  A backup will be saved as <file>.sork-backup\n'));
+    rl.question(chalk.yellow('  Apply fix? [y/N] '), async (answer: string) => {
+      if (answer.trim().toLowerCase() !== 'y') {
+        console.log(chalk.dim('  Cancelled — no changes made.\n'));
+        resolve(false);
+        return;
+      }
+
+      try {
+        const resolved = path.resolve(filePath);
+        // Create backup
+        const backupPath = resolved + '.sork-backup';
+        const original = await fs.readFile(resolved, 'utf-8');
+        await fs.writeFile(backupPath, original, 'utf-8');
+        console.log(chalk.dim(`  📋 Backup saved: ${path.basename(backupPath)}`));
+
+        // Write the fix
+        await fs.writeFile(resolved, fixedCode, 'utf-8');
+        console.log(chalk.green(`  ✓ Fix applied to ${path.basename(resolved)}`));
+        console.log(chalk.dim(`  Tip: run ${chalk.cyan(`/scan ${filePath}`)} to verify the fix\n`));
+        resolve(true);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Write failed';
+        console.log(chalk.red(`  ✗ ${msg}\n`));
+        resolve(false);
+      }
+    });
+  });
+}
+
 async function sendMessage(
   apiKey: string,
   message: string,
@@ -202,11 +286,21 @@ async function sendMessage(
         console.log(chalk.blue(`\n  ┌─ Security Test (${fp.generatedTest.framework}) ──────`));
         console.log(chalk.blue(`  │ ${fp.generatedTest.description}`));
         console.log(chalk.blue(`  └──────────────────────────────────────`));
+        lastGeneratedTest = { testCode: fp.generatedTest.testCode, framework: fp.generatedTest.framework };
         console.log(chalk.dim(`\n  Type ${chalk.cyan('/save-test <path>')} to save the test file`));
       }
 
       pendingFixCode = fp.originalCode;
+      pendingFixedCode = fp.fixedCode;
       pendingFixTriage = undefined;
+
+      // Show inline diff if we know the file path
+      if (pendingFixFilePath && fp.originalCode && fp.fixedCode) {
+        printDiff(fp.originalCode, fp.fixedCode, pendingFixFilePath);
+        console.log(
+          chalk.cyan(`  → Type ${chalk.bold('/apply')} to write the fix to disk, or ${chalk.bold('/diff')} to see it again`)
+        );
+      }
     }
 
     // Awaiting fix confirmation
@@ -231,13 +325,18 @@ async function sendMessage(
 
 function showChatHelp(): void {
   console.log(chalk.bold('\n  SORK Chat Commands\n'));
+  console.log(chalk.dim('  ── Scan & Fix ──────────────────────────────'));
   console.log(`  ${chalk.cyan('/file <path>')}        Attach a file to analyze`);
   console.log(`  ${chalk.cyan('/scan <path>')}        Quick-scan a file`);
   console.log(`  ${chalk.cyan('/fix <path>')}         Scan + auto-fix a file`);
+  console.log(`  ${chalk.cyan('/apply')}              Apply pending fix to disk`);
+  console.log(`  ${chalk.cyan('/diff')}               Show pending fix diff`);
+  console.log(`  ${chalk.cyan('/undo')}               Revert last applied fix`);
+  console.log(`  ${chalk.cyan('/save-test <path>')}   Save last generated test`);
+  console.log(chalk.dim('  ── Session ─────────────────────────────────'));
   console.log(`  ${chalk.cyan('/model')}              Show current model`);
   console.log(`  ${chalk.cyan('/model <name>')}       Switch model`);
   console.log(`  ${chalk.cyan('/search <query>')}     Search security advisories`);
-  console.log(`  ${chalk.cyan('/save-test <path>')}   Save last generated test`);
   console.log(`  ${chalk.cyan('/history')}            Show conversation history`);
   console.log(`  ${chalk.cyan('/clear')}              Clear conversation`);
   console.log(`  ${chalk.cyan('/help')}               Show this help`);
@@ -307,6 +406,9 @@ export async function startChat(): Promise<void> {
           sessionId = randomUUID();
           pendingFixCode = undefined;
           pendingFixTriage = undefined;
+          pendingFixFilePath = undefined;
+          pendingFixedCode = undefined;
+          lastGeneratedTest = undefined;
           console.log(chalk.dim('  Conversation cleared.\n'));
           break;
 
@@ -346,6 +448,7 @@ export async function startChat(): Promise<void> {
           }
           const file = await readFileForAttachment(arg);
           if (file) {
+            pendingFixFilePath = path.resolve(arg);
             console.log(chalk.dim(`  🔍 Scanning ${file.name}...\n`));
             await sendMessage(
               apiKey,
@@ -363,6 +466,7 @@ export async function startChat(): Promise<void> {
           }
           const file = await readFileForAttachment(arg);
           if (file) {
+            pendingFixFilePath = path.resolve(arg);
             console.log(chalk.dim(`  🔧 Scanning + fixing ${file.name}...\n`));
             await sendMessage(
               apiKey,
@@ -413,6 +517,55 @@ export async function startChat(): Promise<void> {
             console.log(chalk.green(`  ✓ Test saved to ${testPath}\n`));
           } catch {
             console.log(chalk.red(`  ✗ Cannot write: ${testPath}\n`));
+          }
+          break;
+        }
+
+        case 'apply': {
+          if (!pendingFixedCode || !pendingFixFilePath) {
+            console.log(chalk.yellow('  No pending fix to apply.'));
+            console.log(chalk.dim('  Run /fix <path> first to generate a fix proposal.\n'));
+            break;
+          }
+          // Show the diff before asking
+          printDiff(pendingFixCode ?? '', pendingFixedCode, pendingFixFilePath);
+          const applied = await applyFix(pendingFixFilePath, pendingFixedCode, rl);
+          if (applied) {
+            // Clear pending state after successful apply
+            pendingFixCode = undefined;
+            pendingFixedCode = undefined;
+            // Keep pendingFixFilePath so /scan can re-verify the same file
+          }
+          break;
+        }
+
+        case 'diff': {
+          if (!pendingFixedCode || !pendingFixFilePath || !pendingFixCode) {
+            console.log(chalk.yellow('  No pending fix to show.'));
+            console.log(chalk.dim('  Run /fix <path> first to generate a fix proposal.\n'));
+            break;
+          }
+          printDiff(pendingFixCode, pendingFixedCode, pendingFixFilePath);
+          console.log(
+            chalk.cyan(`  → Type ${chalk.bold('/apply')} to write the fix to disk\n`)
+          );
+          break;
+        }
+
+        case 'undo': {
+          if (!pendingFixFilePath) {
+            console.log(chalk.yellow('  No recent fix to undo.\n'));
+            break;
+          }
+          const backupPath = path.resolve(pendingFixFilePath) + '.sork-backup';
+          try {
+            const backup = await fs.readFile(backupPath, 'utf-8');
+            await fs.writeFile(path.resolve(pendingFixFilePath), backup, 'utf-8');
+            await fs.unlink(backupPath);
+            console.log(chalk.green(`  ✓ Restored ${path.basename(pendingFixFilePath)} from backup`));
+            console.log(chalk.dim(`  Backup file removed.\n`));
+          } catch {
+            console.log(chalk.red(`  ✗ No backup found at ${backupPath}\n`));
           }
           break;
         }
