@@ -178,9 +178,7 @@ async function applyFix(
   rl: ReturnType<typeof createInterface>
 ): Promise<boolean> {
   return new Promise((resolve) => {
-    console.log(
-      chalk.yellow(`\n  ⚠ This will overwrite: ${chalk.bold(filePath)}`)
-    );
+    console.log(chalk.yellow(`\n  ⚠ This will overwrite: ${chalk.bold(filePath)}`));
     console.log(chalk.dim('  A backup will be saved as <file>.sork-backup\n'));
     rl.question(chalk.yellow('  Apply fix? [y/N] '), async (answer: string) => {
       if (answer.trim().toLowerCase() !== 'y') {
@@ -286,7 +284,10 @@ async function sendMessage(
         console.log(chalk.blue(`\n  ┌─ Security Test (${fp.generatedTest.framework}) ──────`));
         console.log(chalk.blue(`  │ ${fp.generatedTest.description}`));
         console.log(chalk.blue(`  └──────────────────────────────────────`));
-        lastGeneratedTest = { testCode: fp.generatedTest.testCode, framework: fp.generatedTest.framework };
+        lastGeneratedTest = {
+          testCode: fp.generatedTest.testCode,
+          framework: fp.generatedTest.framework,
+        };
         console.log(chalk.dim(`\n  Type ${chalk.cyan('/save-test <path>')} to save the test file`));
       }
 
@@ -298,7 +299,9 @@ async function sendMessage(
       if (pendingFixFilePath && fp.originalCode && fp.fixedCode) {
         printDiff(fp.originalCode, fp.fixedCode, pendingFixFilePath);
         console.log(
-          chalk.cyan(`  → Type ${chalk.bold('/apply')} to write the fix to disk, or ${chalk.bold('/diff')} to see it again`)
+          chalk.cyan(
+            `  → Type ${chalk.bold('/apply')} to write the fix to disk, or ${chalk.bold('/diff')} to see it again`
+          )
         );
       }
     }
@@ -546,9 +549,7 @@ export async function startChat(): Promise<void> {
             break;
           }
           printDiff(pendingFixCode, pendingFixedCode, pendingFixFilePath);
-          console.log(
-            chalk.cyan(`  → Type ${chalk.bold('/apply')} to write the fix to disk\n`)
-          );
+          console.log(chalk.cyan(`  → Type ${chalk.bold('/apply')} to write the fix to disk\n`));
           break;
         }
 
@@ -562,7 +563,9 @@ export async function startChat(): Promise<void> {
             const backup = await fs.readFile(backupPath, 'utf-8');
             await fs.writeFile(path.resolve(pendingFixFilePath), backup, 'utf-8');
             await fs.unlink(backupPath);
-            console.log(chalk.green(`  ✓ Restored ${path.basename(pendingFixFilePath)} from backup`));
+            console.log(
+              chalk.green(`  ✓ Restored ${path.basename(pendingFixFilePath)} from backup`)
+            );
             console.log(chalk.dim(`  Backup file removed.\n`));
           } catch {
             console.log(chalk.red(`  ✗ No backup found at ${backupPath}\n`));
